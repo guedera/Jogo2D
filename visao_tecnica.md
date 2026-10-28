@@ -37,6 +37,8 @@ Jogo **versus de 2 jogadores** em rede local. Quando a partida começa, os dois 
 | 8 | Entrega do protótipo | Precisa rodar em **build** (não só no editor) em **2 máquinas**. |
 | 9 | Plataformas | **2 usuários Mac + 2 Windows.** Compilar para os dois e, se possível, **jogar entre si** (Mac ↔ Windows). |
 | 10 | Visual | **Genérico e simples** no protótipo (pode ser feio). |
+| 11 | Cor da letra | **Letra a letra:** uma letra certa na posição certa fica **branca**, mesmo depois de um erro anterior. O **prefixo correto** é usado só para progresso e contagem de palavras. |
+| 12 | Navegação do cursor | **Só as setas ← →.** Home, End e outras teclas de navegação **não funcionam**. **Segurar a seta não repete:** cada pressão move **uma posição**. |
 
 ---
 
@@ -73,6 +75,8 @@ Esperando jogadores → Contagem (3-2-1) → Jogando → Fim (vencedor)
 ### 4.1 Digitação (`Typing`)
 
 **Captura de entrada:** Input System (`Keyboard.current.onTextInput` para caracteres; teclas de Backspace e setas tratadas à parte). **Não usar `InputField`**, porque o cursor precisa ser controlado por código. O `onTextInput` já entrega Unicode, então acentos funcionarão no futuro.
+
+**Navegação:** só `←` e `→`, lidas com `wasPressedThisFrame`, que dispara **uma vez por pressão** e ignora a repetição ao segurar a tecla. Home, End, Ctrl+setas, Page Up/Down e o mouse **não movem o cursor**. Ctrl/Cmd+A, C, V e atalhos de colagem também devem ser **ignorados**, para o jogador não colar o texto.
 
 **`TypingModel`** (lógica pura em C#, sem MonoBehaviour, testável):
 - `target`: texto alvo.
@@ -262,11 +266,12 @@ A lógica de digitação (`TypingModel`) fica **sem dependência de Unity ou red
 
 ## 10. Pontos em aberto
 
-1. **Cor após um erro:** a decisão 1 diz que "a partir dali está errado", e a decisão 2 diz "verificado letra a letra". Assumimos **letra a letra** para a cor (uma letra digitada certa na posição certa fica branca), e o **prefixo correto** para progresso e contagem de palavras. Confirmar se é isso mesmo.
-2. **Teclas Home/End:** permitir ou não? Assumimos **só as setas ← →**, para o CHANGE ser relevante.
-3. **Palavra atingida pela BOBOMB:** assumimos a palavra onde está o **final do texto digitado**, não a do cursor.
-4. **Limite de `typed` acima do `target`:** definir um valor (por exemplo +20 caracteres).
-5. **Revanche:** incluir no protótipo ou só "voltar ao menu"?
-6. **Queda de conexão no meio da partida:** assumimos encerrar e voltar ao menu com uma mensagem.
-7. **Fonte do banco de palavras em inglês:** escolher e creditar no `README.md`.
-8. **Horário limite da quinta-feira** (para planejar a janela de testes).
+*(Resolvidos: cor letra a letra e navegação só com setas sem repetição, ver decisões 11 e 12.)*
+
+1. **Backspace segurado:** repete (apaga continuamente) ou também apaga um por pressão, como as setas? Assumimos que **apagar um por pressão**, igual às setas, até alguém dizer o contrário.
+2. **Palavra atingida pela BOBOMB:** assumimos a palavra onde está o **final do texto digitado**, não a do cursor.
+3. **Limite de `typed` acima do `target`:** definir um valor (por exemplo +20 caracteres).
+4. **Revanche:** incluir no protótipo ou só "voltar ao menu"?
+5. **Queda de conexão no meio da partida:** assumimos encerrar e voltar ao menu com uma mensagem.
+6. **Fonte do banco de palavras em inglês:** escolher e creditar no `README.md`.
+7. **Horário limite da quinta-feira** (para planejar a janela de testes).
