@@ -120,7 +120,9 @@ texto exibido = typed  (cada letra branca ou vermelha, mostrando a letra digitad
 
 ### 4.3 Rede (`Networking`)
 
-- **Netcode for GameObjects** + **Unity Transport** (UDP).
+> **Mudança (29/10):** o Netcode for GameObjects 2.9.2 **não compila na Unity 6000.6**, porque o pacote `com.unity.transport 6.6.0` embutido na engine só é compatível com o NGO 3.x, que exige 6000.7. O MVP usa **sockets TCP do C#** (`Assets/_Project/Scripts/Net/GameNet.cs`), sem pacotes. A arquitetura abaixo continua valendo (host autoritativo, mesmas mensagens); só o transporte é diferente. Para voltar ao Netcode ou ir para WebSocket/Relay, basta trocar o `GameNet`.
+
+- ~~Netcode for GameObjects + Unity Transport (UDP)~~ → **TCP direto** no MVP.
 - **Topologia:** um jogador é **Host** (servidor + jogador); o outro é **Client** e digita o IP. Porta padrão **7777**; o host escuta em `0.0.0.0`.
 - **Aprovação de conexão:** limitada a `maxPlayers` (2 no protótipo), recusando conexões extras.
 
