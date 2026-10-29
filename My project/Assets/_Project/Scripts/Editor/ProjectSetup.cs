@@ -47,6 +47,10 @@ namespace TypeDuel.EditorTools
             PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
             PlayerSettings.resizableWindow = true;
             PlayerSettings.macOS.buildNumber = "1";
+
+            // D3D12 (padrao do Unity 6) falha em GPUs/drivers antigos e VMs; para um jogo 2D, D3D11 roda em tudo.
+            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
+            PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows64, new[] { UnityEngine.Rendering.GraphicsDeviceType.Direct3D11 });
         }
 
         static void Build(BuildTarget target, string relativeOutput)
