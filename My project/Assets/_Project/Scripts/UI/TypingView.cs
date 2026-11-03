@@ -42,12 +42,13 @@ namespace TypeDuel.UI
             Cursor.gameObject.SetActive(false);
         }
 
-        public void Render(TypingModel m, bool glitch)
+        /// <summary>Com peek, mostra so o texto original (branco), sem o que foi digitado nem o cursor.</summary>
+        public void Render(TypingModel m, bool glitch, bool peek)
         {
             sb.Clear();
             sb.Append("<mspace=").Append(MonoWidth).Append('>');
 
-            int typedLen = m.TypedLength;
+            int typedLen = peek ? 0 : m.TypedLength;
             int total = System.Math.Max(typedLen, m.Target.Length);
             int run = -1; // 0 cinza, 1 branco, 2 vermelho
 
@@ -63,7 +64,7 @@ namespace TypeDuel.UI
                 else
                 {
                     ch = m.Target[i];
-                    state = 0;
+                    state = peek ? 1 : 0;
                 }
 
                 if (state != run)
@@ -73,7 +74,7 @@ namespace TypeDuel.UI
                     run = state;
                 }
 
-                if (glitch) ch = LeetMap.Apply(ch);
+                if (glitch && !peek) ch = LeetMap.Apply(ch);
                 if (ch == '<') sb.Append("<noparse><</noparse>");
                 else sb.Append(ch);
             }
@@ -83,7 +84,8 @@ namespace TypeDuel.UI
 
             Text.text = sb.ToString();
             Text.ForceMeshUpdate();
-            PlaceCursor(m.Cursor);
+            if (peek) Cursor.gameObject.SetActive(false);
+            else PlaceCursor(m.Cursor);
         }
 
         void OpenRun(int state)

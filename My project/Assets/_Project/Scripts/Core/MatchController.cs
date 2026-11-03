@@ -36,6 +36,7 @@ namespace TypeDuel
         int wordsReported;
         int lastSentPrefix;
         bool finishedSent;
+        bool peeking;
         Keyboard subscribedKeyboard;
 
         public MatchState State { get; private set; } = MatchState.Menu;
@@ -276,6 +277,7 @@ namespace TypeDuel
             wordsReported = 0;
             lastSentPrefix = -1;
             finishedSent = false;
+            peeking = false;
             LastResult = "";
 
             ui.SetupBars(opponentIds);
@@ -326,8 +328,10 @@ namespace TypeDuel
             if (kb != null)
             {
                 if (kb.backspaceKey.wasPressedThisFrame) DoBackspace();
+                if (kb.deleteKey.wasPressedThisFrame) DoDelete();
                 if (kb.leftArrowKey.wasPressedThisFrame) DoMove(-1);
                 if (kb.rightArrowKey.wasPressedThisFrame) DoMove(1);
+                SetPeeking(kb.tabKey.isPressed);
             }
 
             var mouse = Mouse.current;
@@ -377,10 +381,24 @@ namespace TypeDuel
             if (model.Insert(c)) AfterEdit();
         }
 
+        /// <summary>Segurar TAB mostra o texto original no lugar do que foi digitado.</summary>
+        void SetPeeking(bool on)
+        {
+            if (peeking == on) return;
+            peeking = on;
+            Refresh();
+        }
+
         public void DoBackspace()
         {
             if (State != MatchState.Playing || model == null) return;
             if (model.Backspace()) AfterEdit();
+        }
+
+        public void DoDelete()
+        {
+            if (State != MatchState.Playing || model == null) return;
+            if (model.Delete()) AfterEdit();
         }
 
         public void MoveCursorRight()
@@ -408,7 +426,7 @@ namespace TypeDuel
         void Refresh()
         {
             if (model == null) return;
-            ui.Typing.Render(model, GlitchActive);
+            ui.Typing.Render(model, GlitchActive, peeking);
             ui.SetOwnProgress((float)model.CorrectPrefix / Mathf.Max(1, model.Target.Length));
         }
 
