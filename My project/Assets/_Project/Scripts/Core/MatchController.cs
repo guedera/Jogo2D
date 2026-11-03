@@ -387,6 +387,8 @@ namespace TypeDuel
             }
 
             if (char.IsControl(c)) return;
+            // O texto do jogo e ASCII; no macOS as setas chegam aqui como U+F700..F8FF (area privada), que viram quadrados.
+            if (State != MatchState.Playing || c < ' ' || c > '~') return;
 
             var kb = Keyboard.current;
             if (kb != null && (kb.ctrlKey.isPressed || kb.leftCommandKey.isPressed || kb.rightCommandKey.isPressed || kb.altKey.isPressed))
