@@ -37,6 +37,7 @@ namespace TypeDuel.UI
         readonly Dictionary<int, ProgressBar> opponentBars = new Dictionary<int, ProgressBar>();
         public RectTransform TextPanel { get; private set; }
         public TypingView Typing { get; private set; }
+        public PowerPromptView Prompt { get; private set; }
         TMP_Text glitchBanner;
         TMP_Text toast;
         TMP_Text countdown;
@@ -179,7 +180,7 @@ namespace TypeDuel.UI
             toast = UiKit.Label(panel, "Toast", "", 46f, UiKit.TextMain, style: FontStyles.Bold);
             UiKit.Place(toast.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 395f), new Vector2(1400f, 70f));
 
-            slotsHint = UiKit.Label(panel, "SlotsHint", "POWERS  (left click to use)", 28f, UiKit.TextDim);
+            slotsHint = UiKit.Label(panel, "SlotsHint", "POWERS  (Ctrl, then type the name)", 28f, UiKit.TextDim);
             UiKit.Place(slotsHint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 190f), new Vector2(1000f, 40f));
 
             var slotsRoot = UiKit.NewRect("Slots", panel);
@@ -223,6 +224,8 @@ namespace TypeDuel.UI
             ExplosionImage.sprite = UiKit.Circle;
             ExplosionImage.rectTransform.sizeDelta = new Vector2(120f, 120f);
             ExplosionImage.gameObject.SetActive(false);
+
+            Prompt = new PowerPromptView(panel);
         }
 
         /// <summary>Cria as barras de progresso: a sua e uma por oponente.</summary>
@@ -275,7 +278,7 @@ namespace TypeDuel.UI
 
             int extra = queue.Count - MaxSlots;
             slotsMore.text = extra > 0 ? "+" + extra : "";
-            slotsHint.text = queue.Count > 0 ? "POWERS  (left click uses the first one)" : "POWERS  (finish words to earn them)";
+            slotsHint.text = queue.Count > 0 ? "POWERS  (Ctrl, then type the name)" : "POWERS  (finish words to earn them)";
         }
 
         public void SetCountdown(string text) => countdown.text = text;
