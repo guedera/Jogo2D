@@ -58,6 +58,14 @@ namespace TypeDuel
             return true;
         }
 
+        public bool Delete()
+        {
+            if (Cursor >= typed.Length) return false;
+            typed.Remove(Cursor, 1);
+            Recompute();
+            return true;
+        }
+
         public bool MoveLeft()
         {
             if (Cursor == 0) return false;

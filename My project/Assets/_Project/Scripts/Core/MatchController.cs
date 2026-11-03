@@ -36,6 +36,9 @@ namespace TypeDuel
         int wordsReported;
         int lastSentPrefix;
         bool finishedSent;
+        bool peeking;
+        bool casting;
+        string castText = "";
         Keyboard subscribedKeyboard;
 
         public MatchState State { get; private set; } = MatchState.Menu;
@@ -276,6 +279,8 @@ namespace TypeDuel
             wordsReported = 0;
             lastSentPrefix = -1;
             finishedSent = false;
+            peeking = false;
+            StopCasting();
             LastResult = "";
 
             ui.SetupBars(opponentIds);
@@ -325,13 +330,23 @@ namespace TypeDuel
             var kb = Keyboard.current;
             if (kb != null)
             {
-                if (kb.backspaceKey.wasPressedThisFrame) DoBackspace();
-                if (kb.leftArrowKey.wasPressedThisFrame) DoMove(-1);
-                if (kb.rightArrowKey.wasPressedThisFrame) DoMove(1);
-            }
+                if (kb.ctrlKey.wasPressedThisFrame) ToggleCasting();
 
-            var mouse = Mouse.current;
-            if (mouse != null && mouse.leftButton.wasPressedThisFrame) UsePower();
+                if (casting)
+                {
+                    if (kb.backspaceKey.wasPressedThisFrame) DoCastBackspace();
+                    if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) SubmitCast();
+                }
+                else
+                {
+                    if (kb.backspaceKey.wasPressedThisFrame) DoBackspace();
+                    if (kb.deleteKey.wasPressedThisFrame) DoDelete();
+                    if (kb.leftArrowKey.wasPressedThisFrame) DoMove(-1);
+                    if (kb.rightArrowKey.wasPressedThisFrame) DoMove(1);
+                }
+
+                SetPeeking(!casting && kb.tabKey.isPressed);
+            }
 
             // Cursor piscando (fica fixo logo apos digitar).
             bool solid = Time.time - lastInputTime < 0.5f;
@@ -343,6 +358,7 @@ namespace TypeDuel
             StopAllCoroutines();
             ui.ResetEffects();
             State = MatchState.Over;
+            StopCasting();
 
             bool won = winnerId == net.LocalId;
             LastResult = won ? "win" : "lose";
@@ -361,6 +377,16 @@ namespace TypeDuel
                 return;
             }
 
+            if (State != MatchState.Playing) return;
+
+            if (casting)
+            {
+                if (c == ' ') StopCasting();
+                else if (char.IsLetter(c)) AddCastChar(c);
+                return;
+            }
+
+            if (char.IsControl(c)) return;
             // O texto do jogo e ASCII; no macOS as setas chegam aqui como U+F700..F8FF (area privada), que viram quadrados.
             if (State != MatchState.Playing || c < ' ' || c > '~') return;
 
@@ -378,10 +404,24 @@ namespace TypeDuel
             if (model.Insert(c)) AfterEdit();
         }
 
+        /// <summary>Segurar TAB mostra o texto original no lugar do que foi digitado.</summary>
+        void SetPeeking(bool on)
+        {
+            if (peeking == on) return;
+            peeking = on;
+            Refresh();
+        }
+
         public void DoBackspace()
         {
             if (State != MatchState.Playing || model == null) return;
             if (model.Backspace()) AfterEdit();
+        }
+
+        public void DoDelete()
+        {
+            if (State != MatchState.Playing || model == null) return;
+            if (model.Delete()) AfterEdit();
         }
 
         public void MoveCursorRight()
@@ -409,7 +449,7 @@ namespace TypeDuel
         void Refresh()
         {
             if (model == null) return;
-            ui.Typing.Render(model, GlitchActive);
+            ui.Typing.Render(model, GlitchActive, peeking);
             ui.SetOwnProgress((float)model.CorrectPrefix / Mathf.Max(1, model.Target.Length));
         }
 
@@ -440,16 +480,95 @@ namespace TypeDuel
 
         // ------------------------------------------------------------ poderes
 
+        /// <summary>Usa o primeiro poder da fila (usado pelo bot de testes).</summary>
         public void UsePower()
         {
-            if (State != MatchState.Playing || queue.Count == 0) return;
+            if (queue.Count > 0) UsePower(queue[0]);
+        }
 
-            var power = queue[0];
-            queue.RemoveAt(0);
+        public void UsePower(PowerType power)
+        {
+            if (State != MatchState.Playing || !queue.Remove(power)) return;
+
             ui.SetSlots(queue);
             net.SendToServer(MsgType.UsePower, w => w.Write((byte)power));
             ui.ShowToast("Sent " + PowerInfo.Name(power) + "!", PowerInfo.Color(power));
             Debug.Log($"[TD] Used power {power}");
+        }
+
+        // ------------------------------------------------------------ escolher poder (Ctrl + nome)
+
+        void ToggleCasting()
+        {
+            if (casting) StopCasting();
+            else StartCasting();
+        }
+
+        void StartCasting()
+        {
+            if (queue.Count == 0)
+            {
+                ui.ShowToast("No powers yet - finish words to earn them", UiKit.TextDim);
+                return;
+            }
+
+            casting = true;
+            castText = "";
+            ui.Prompt.Show(castText);
+        }
+
+        void StopCasting()
+        {
+            casting = false;
+            castText = "";
+            ui.Prompt.Hide();
+        }
+
+        void AddCastChar(char c)
+        {
+            castText += char.ToUpperInvariant(c);
+
+            for (int i = 0; i < PowerInfo.Count; i++)
+            {
+                var power = (PowerType)i;
+                if (PowerInfo.Name(power) != castText) continue;
+
+                if (power == queue[0])
+                {
+                    StopCasting();
+                    UsePower(power);
+                }
+                else
+                {
+                    ui.ShowToast("Next power is " + PowerInfo.Name(queue[0]), UiKit.TextDim);
+                    castText = "";
+                    ui.Prompt.SetText(castText);
+                }
+                return;
+            }
+
+            // Letra que nao leva a nenhum nome de poder: recomeca.
+            bool isPrefix = false;
+            for (int i = 0; i < PowerInfo.Count; i++)
+                if (PowerInfo.Name((PowerType)i).StartsWith(castText, StringComparison.Ordinal)) isPrefix = true;
+            if (!isPrefix) castText = "";
+
+            ui.Prompt.SetText(castText);
+        }
+
+        // Enter fecha o campo; se o nome nao for um poder valido, avisa o que foi digitado.
+        void SubmitCast()
+        {
+            if (castText.Length == 0) ui.ShowToast("Cast cancelled", UiKit.TextDim);
+            else ui.ShowToast("Unknown power: " + castText, UiKit.Bad);
+            StopCasting();
+        }
+
+        void DoCastBackspace()
+        {
+            if (castText.Length == 0) return;
+            castText = castText.Substring(0, castText.Length - 1);
+            ui.Prompt.SetText(castText);
         }
 
         void ApplyEffect(PowerType power, int from)
