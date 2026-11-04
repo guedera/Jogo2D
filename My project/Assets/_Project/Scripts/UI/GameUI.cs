@@ -266,7 +266,7 @@ namespace TypeDuel.UI
 
             var textBg = UiKit.Box(panel, "TextPanel", UiKit.Panel);
             TextPanel = textBg.rectTransform;
-            UiKit.Place(TextPanel, new Vector2(0.5f, 0.5f), new Vector2(0f, -30f), new Vector2(1640f, 640f));
+            UiKit.Place(TextPanel, new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(1640f, 640f));
             Typing = new TypingView(TextPanel);
 
             trainingTimer = UiKit.Label(panel, "TrainingTimer", "", 54f, UiKit.TextMain, style: FontStyles.Bold);
@@ -279,10 +279,10 @@ namespace TypeDuel.UI
             UiKit.Place(toast.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 395f), new Vector2(1400f, 70f));
 
             slotsHint = UiKit.Label(panel, "SlotsHint", "POWERS  (Ctrl, then type the name)", 28f, UiKit.TextDim);
-            UiKit.Place(slotsHint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 190f), new Vector2(1000f, 40f));
+            UiKit.Place(slotsHint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 165f), new Vector2(1000f, 40f));
 
             slotsRoot = UiKit.NewRect("Slots", panel);
-            UiKit.Place(slotsRoot, new Vector2(0.5f, 0f), new Vector2(0f, 90f), new Vector2(1200f, 140f));
+            UiKit.Place(slotsRoot, new Vector2(0.5f, 0f), new Vector2(0f, 75f), new Vector2(1200f, 140f));
             var layout = slotsRoot.gameObject.AddComponent<HorizontalLayoutGroup>();
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.spacing = 20f;
@@ -302,7 +302,7 @@ namespace TypeDuel.UI
             }
 
             slotsMore = UiKit.Label(panel, "SlotsMore", "", 36f, UiKit.TextDim);
-            UiKit.Place(slotsMore.rectTransform, new Vector2(0.5f, 0f), new Vector2(560f, 90f), new Vector2(200f, 60f));
+            UiKit.Place(slotsMore.rectTransform, new Vector2(0.5f, 0f), new Vector2(560f, 75f), new Vector2(200f, 60f));
 
             countdown = UiKit.Label(panel, "Countdown", "", 260f, UiKit.TextMain, style: FontStyles.Bold);
             UiKit.Place(countdown.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 0f), new Vector2(1400f, 320f));
@@ -391,8 +391,8 @@ namespace TypeDuel.UI
             slotsMore.gameObject.SetActive(visible);
             slotsRoot.gameObject.SetActive(visible);
 
-            TextPanel.anchoredPosition = visible ? new Vector2(0f, -30f) : new Vector2(0f, -95f);
-            TextPanel.sizeDelta = visible ? new Vector2(1640f, 640f) : new Vector2(1640f, 770f);
+            TextPanel.anchoredPosition = visible ? new Vector2(0f, -10f) : new Vector2(0f, -85f);
+            TextPanel.sizeDelta = visible ? new Vector2(1640f, 640f) : new Vector2(1640f, 790f);
         }
 
         /// <summary>Segundos restantes do treino; negativo esconde o timer.</summary>
@@ -439,7 +439,7 @@ namespace TypeDuel.UI
         {
             BombImage.gameObject.SetActive(false);
             ExplosionImage.gameObject.SetActive(false);
-            TextPanel.anchoredPosition = new Vector2(0f, -30f);
+            TextPanel.anchoredPosition = new Vector2(0f, -10f);
             glitchBanner.text = "";
             toast.text = "";
             toastTimer = 0f;

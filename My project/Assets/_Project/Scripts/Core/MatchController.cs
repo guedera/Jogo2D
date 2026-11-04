@@ -955,7 +955,7 @@ namespace TypeDuel
         IEnumerator ShakeRoutine()
         {
             var panel = ui.TextPanel;
-            var rest = new Vector2(0f, -30f);
+            var rest = new Vector2(0f, -10f);
             for (float t = 0f; t < 0.35f; t += Time.deltaTime)
             {
                 panel.anchoredPosition = rest + UnityEngine.Random.insideUnitCircle * 14f * (1f - t / 0.35f);
