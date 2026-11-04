@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using UnityEngine;
 
 namespace TypeDuel.Net
@@ -13,16 +14,34 @@ namespace TypeDuel.Net
     {
         enum State { Lobby, Playing, Over }
 
+        sealed class Suggestion
+        {
+            public string Title;
+            public string Text;
+            public int Words;
+        }
+
+        /// <summary>Nada escolhido ainda: o host precisa escolher antes de comecar.</summary>
+        public const int NoChoice = -2;
+        /// <summary>Texto gerado com o banco de palavras (modo original).</summary>
+        public const int GenerateChoice = -1;
+
         readonly GameNet net;
         readonly System.Random rng = new System.Random();
         readonly List<int> players = new List<int>();
         readonly Dictionary<int, HashSet<int>> countedWords = new Dictionary<int, HashSet<int>>();
+        readonly Dictionary<int, string> names = new Dictionary<int, string>();
+        readonly Dictionary<int, Suggestion> suggestions = new Dictionary<int, Suggestion>();
+        readonly Dictionary<int, int> progress = new Dictionary<int, int>();
+        readonly Dictionary<int, int> dryWords = new Dictionary<int, int>();
+        int textLength;
 
         State state = State.Lobby;
         int wordCount;
+        int choice = NoChoice;
 
         public int PlayerCount => players.Count;
-        public bool CanStart => state != State.Playing && players.Count >= Config.MinPlayersToStart;
+        public bool CanStart => state != State.Playing && players.Count >= Config.MinPlayersToStart && choice != NoChoice;
 
         public HostLogic(GameNet net)
         {
@@ -44,15 +63,69 @@ namespace TypeDuel.Net
             });
         }
 
+        /// <summary>Host escolhe o texto gerado (banco de palavras).</summary>
+        public void ChooseGenerate()
+        {
+            if (choice == GenerateChoice) return;
+            choice = GenerateChoice;
+            SendSuggestions();
+        }
+
+        /// <summary>Host escolhe o texto sugerido por um jogador (id do dono).</summary>
+        public void ChooseSuggestion(int ownerId)
+        {
+            if (!suggestions.ContainsKey(ownerId)) return;
+            choice = ownerId;
+            SendSuggestions();
+        }
+
+        /// <summary>Envia a todos a lista de textos sugeridos e o que o host escolheu.</summary>
+        public void SendSuggestions()
+        {
+            net.Broadcast(MsgType.Suggestions, w =>
+            {
+                w.Write(choice);
+                w.Write(suggestions.Count);
+                foreach (var pair in suggestions)
+                {
+                    w.Write(pair.Key);
+                    w.Write(names.TryGetValue(pair.Key, out var owner) ? owner : "");
+                    w.Write(pair.Value.Title);
+                    w.Write(pair.Value.Words);
+                }
+            });
+        }
+
+        /// <summary>Revanche: todos voltam para a sala de espera, com o texto escolhido antes ja marcado.</summary>
+        public void ReturnToLobby()
+        {
+            if (state == State.Playing) return;
+
+            state = State.Lobby;
+            net.Broadcast(MsgType.ReturnToLobby);
+            SendLobbyState();
+            SendSuggestions();
+        }
+
         public void StartMatch()
         {
             if (!CanStart) return;
 
-            var text = WordBank.GenerateText(rng, Config.WordCount);
-            wordCount = Config.WordCount;
+            var text = choice >= 0 && suggestions.TryGetValue(choice, out var picked)
+                ? picked.Text
+                : WordBank.GenerateText(rng, Config.WordCount);
+            wordCount = text.Split(' ').Length;
             state = State.Playing;
             countedWords.Clear();
-            foreach (var id in players) countedWords[id] = new HashSet<int>();
+            progress.Clear();
+            dryWords.Clear();
+            foreach (var id in players)
+            {
+                countedWords[id] = new HashSet<int>();
+                progress[id] = 0;
+                dryWords[id] = 0;
+            }
+            textLength = text.Length;
 
             Debug.Log($"[TD] Match start, {players.Count} players, {text.Length} chars");
             net.Broadcast(MsgType.Start, w =>
@@ -60,6 +133,7 @@ namespace TypeDuel.Net
                 w.Write(text);
                 w.Write(players.Count);
                 foreach (var id in players) w.Write(id);
+                foreach (var id in players) w.Write(names.TryGetValue(id, out var name) ? name : "");
             });
         }
 
@@ -67,12 +141,18 @@ namespace TypeDuel.Net
         {
             players.Add(id);
             SendLobbyState();
+            SendSuggestions();
         }
 
         void OnPeerDisconnected(int id)
         {
             players.Remove(id);
             countedWords.Remove(id);
+            names.Remove(id);
+            progress.Remove(id);
+            dryWords.Remove(id);
+            suggestions.Remove(id);
+            if (choice == id) choice = NoChoice;
 
             if (state == State.Playing && players.Count < 2)
             {
@@ -86,6 +166,7 @@ namespace TypeDuel.Net
             }
 
             SendLobbyState();
+            SendSuggestions();
         }
 
         void OnMessage(int sender, MsgType type, BinaryReader r)
@@ -98,7 +179,33 @@ namespace TypeDuel.Net
                 case MsgType.Progress: OnProgress(sender, r.ReadInt32()); break;
                 case MsgType.UsePower: OnUsePower(sender, r.ReadByte()); break;
                 case MsgType.Finished: OnFinished(sender); break;
+                case MsgType.SetName: names[sender] = CleanName(r.ReadString()); break;
+                case MsgType.SuggestText: OnSuggestText(sender, r.ReadString(), r.ReadString()); break;
             }
+        }
+
+        /// <summary>Texto sugerido por um jogador: o host limpa e valida de novo (nao confia no cliente). O texto do proprio host ja fica escolhido.</summary>
+        void OnSuggestText(int sender, string title, string raw)
+        {
+            if (state == State.Playing) return;
+            if (!TextCleaner.TryClean(raw, out var cleaned, out int words)) return;
+
+            if (title.Length > 24) title = title.Substring(0, 24);
+            suggestions[sender] = new Suggestion { Title = title, Text = cleaned, Words = words };
+            if (sender == net.LocalId) choice = sender;
+            SendSuggestions();
+        }
+
+        /// <summary>Nome vindo de um cliente: so ASCII visivel (sem &lt; e &gt;, que quebram o rich text), limitado ao tamanho maximo.</summary>
+        static string CleanName(string raw)
+        {
+            var sb = new StringBuilder();
+            foreach (char c in raw)
+            {
+                if (sb.Length >= Config.MaxNameLength) break;
+                if (c >= ' ' && c <= '~' && c != '<' && c != '>') sb.Append(c);
+            }
+            return sb.ToString().Trim();
         }
 
         void OnWordDone(int sender, int wordIndex)
@@ -107,15 +214,41 @@ namespace TypeDuel.Net
             if (wordIndex < 0 || wordIndex >= wordCount) return;
             if (!countedWords.TryGetValue(sender, out var counted) || !counted.Add(wordIndex)) return;
 
-            if (rng.NextDouble() >= Config.PowerChance) return;
+            // Protecao contra azar: depois de PityWords palavras sem poder, a proxima palavra garante um.
+            dryWords.TryGetValue(sender, out int dry);
+            bool guaranteed = dry + 1 >= Config.PityWords;
+            float chance = PowerChanceFor(sender);
 
+            if (!guaranteed && rng.NextDouble() >= chance)
+            {
+                dryWords[sender] = dry + 1;
+                return;
+            }
+
+            dryWords[sender] = 0;
             var power = (byte)rng.Next(PowerInfo.Count);
+            Debug.Log($"[TD] Power to {sender} (guaranteed={guaranteed}, chance={chance:F2})");
             net.SendToClient(sender, MsgType.PowerGranted, w => w.Write(power));
+        }
+
+        /// <summary>Chance base, subindo ate CatchUpMaxChance conforme o jogador fica atras do lider da partida.</summary>
+        float PowerChanceFor(int id)
+        {
+            if (textLength <= 0 || !progress.TryGetValue(id, out int own)) return Config.PowerChance;
+
+            int best = own;
+            foreach (var pair in progress)
+                if (pair.Key != id && pair.Value > best) best = pair.Value;
+
+            float behind = Mathf.Clamp01((best - own) / (textLength * Config.CatchUpFraction));
+            return Mathf.Lerp(Config.PowerChance, Config.CatchUpMaxChance, behind);
         }
 
         void OnProgress(int sender, int prefix)
         {
             if (state != State.Playing) return;
+
+            progress[sender] = prefix;
 
             foreach (var id in players)
             {

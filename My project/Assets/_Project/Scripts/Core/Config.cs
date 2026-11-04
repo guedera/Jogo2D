@@ -6,12 +6,21 @@ namespace TypeDuel
         public const int MaxPlayers = 2;
         public const int MinPlayersToStart = 2;
         public const int Port = 7777;
+        public const int MaxNameLength = 12;
 
         public const int WordCount = 100;
+        public const int TrainingWordCount = 300;
+        public const float TrainingSeconds = 60f;
         public const int ExtraTypedLimit = 20;
         public const float CountdownSeconds = 3f;
 
         public const float PowerChance = 0.15f;
+        /// <summary>Depois desta quantidade de palavras sem poder, a proxima palavra garante um poder.</summary>
+        public const int PityWords = 20;
+        /// <summary>Chance maxima de poder para quem esta atras (sobe a partir de PowerChance).</summary>
+        public const float CatchUpMaxChance = 0.30f;
+        /// <summary>Distancia para o lider, em fracao do texto, em que a chance chega ao maximo.</summary>
+        public const float CatchUpFraction = 0.20f;
         public const float GlitchSeconds = 15f;
         public const int BombEraseChars = 10;
 
