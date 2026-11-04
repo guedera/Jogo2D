@@ -20,12 +20,16 @@ namespace TypeDuel.Net
         PowerEffect = 6,
         OpponentProgress = 7,
         GameOver = 8,
+        Suggestions = 9,
+        ReturnToLobby = 10,
 
         // cliente -> servidor
         WordDone = 32,
         Progress = 33,
         UsePower = 34,
         Finished = 35,
+        SetName = 36,
+        SuggestText = 37,
     }
 
     public delegate void ServerMessageHandler(int senderId, MsgType type, BinaryReader reader);

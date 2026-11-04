@@ -65,6 +65,9 @@ namespace TypeDuel.Dev
                 if (lastState == MatchState.Over) { Shot("result"); if (quitWhenDone) quitAt = timer + 2f; }
             }
 
+            // O host precisa escolher a origem do texto antes de comecar: o bot usa GENERATE.
+            if (role == "host" && Controller.State == MatchState.Lobby) Controller.HostChooseGenerate();
+
             // Espera um pouco no lobby (para dar tempo da captura de tela) e inicia a partida.
             if (role == "host" && Controller.State == MatchState.Lobby && Controller.CanHostStart)
             {

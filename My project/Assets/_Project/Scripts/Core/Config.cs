@@ -6,8 +6,11 @@ namespace TypeDuel
         public const int MaxPlayers = 2;
         public const int MinPlayersToStart = 2;
         public const int Port = 7777;
+        public const int MaxNameLength = 12;
 
         public const int WordCount = 100;
+        public const int TrainingWordCount = 300;
+        public const float TrainingSeconds = 60f;
         public const int ExtraTypedLimit = 20;
         public const float CountdownSeconds = 3f;
 
