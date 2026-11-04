@@ -40,10 +40,19 @@ namespace TypeDuel
 
         public bool IsCorrectAt(int index) => index < typed.Length && index < Target.Length && typed[index] == Target[index];
 
+        /// <summary>Letras digitadas que batem com o alvo, mesmo depois de um erro (precisao do treino).</summary>
+        public int CorrectTypedCount()
+        {
+            int count = 0;
+            for (int i = 0; i < typed.Length; i++)
+                if (IsCorrectAt(i)) count++;
+            return count;
+        }
+
         public bool Insert(char c)
         {
             if (typed.Length >= maxLength) return false;
-            typed.Insert(Cursor, c);
+            typed.Insert(Cursor, char.ToLowerInvariant(c)); // o texto e todo minusculo: digitar maiuscula conta igual
             Cursor++;
             Recompute();
             return true;

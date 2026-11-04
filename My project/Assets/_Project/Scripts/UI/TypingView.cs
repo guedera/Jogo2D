@@ -12,6 +12,7 @@ namespace TypeDuel.UI
     public sealed class TypingView
     {
         const string MonoWidth = "0.64em";
+        const float Pad = 36f;
 
         static readonly string Gray = UiKit.HexRgb(new Color(0.55f, 0.57f, 0.62f));
         static readonly string White = "FFFFFF";
@@ -20,14 +21,18 @@ namespace TypeDuel.UI
         readonly StringBuilder sb = new StringBuilder(2048);
         public readonly TextMeshProUGUI Text;
         public readonly Image Cursor;
+        float scroll;
 
         public TypingView(Transform parent)
         {
+            // Mascara: o texto que passar do painel e cortado, e o FollowCursor sobe a parte de cima.
+            parent.gameObject.AddComponent<RectMask2D>();
+
             Text = UiKit.Label(parent, "TypingText", "", 40f, Color.white, TextAlignmentOptions.TopLeft);
             Text.textWrappingMode = TextWrappingModes.Normal;
             Text.richText = true;
             Text.lineSpacing = 12f;
-            UiKit.Stretch(Text.rectTransform, 36f);
+            UiKit.Stretch(Text.rectTransform, Pad);
 
             Cursor = UiKit.Box(Text.transform, "Cursor", UiKit.Accent);
             Cursor.rectTransform.pivot = new Vector2(0.5f, 0f);
@@ -40,6 +45,8 @@ namespace TypeDuel.UI
         {
             Text.text = "";
             Cursor.gameObject.SetActive(false);
+            scroll = 0f;
+            ApplyScroll();
         }
 
         /// <summary>Com peek, mostra so o texto original (branco), sem o que foi digitado nem o cursor.</summary>
@@ -84,6 +91,7 @@ namespace TypeDuel.UI
 
             Text.text = sb.ToString();
             Text.ForceMeshUpdate();
+            if (!peek) FollowCursor(m.Cursor);
             if (peek) Cursor.gameObject.SetActive(false);
             else PlaceCursor(m.Cursor);
         }
@@ -100,6 +108,31 @@ namespace TypeDuel.UI
             if (state < 0) return;
             if (state == 2) sb.Append("</mark>");
             sb.Append("</color>");
+        }
+
+        /// <summary>Rola o texto para a linha do cursor ficar no meio do painel; as linhas ja escritas saem por cima.</summary>
+        void FollowCursor(int cursor)
+        {
+            var info = Text.textInfo;
+            int count = info.characterCount;
+            if (count == 0 || info.lineCount == 0) return;
+
+            // Distancias medidas a partir do topo da primeira linha (y para baixo).
+            int line = info.characterInfo[Mathf.Min(cursor, count - 1)].lineNumber;
+            float top = info.lineInfo[0].ascender - info.lineInfo[line].ascender;
+            float bottom = info.lineInfo[0].ascender - info.lineInfo[line].descender;
+            float middle = Text.rectTransform.rect.height * 0.5f;
+
+            if (bottom > scroll + middle) scroll = bottom - middle;
+            else if (top < scroll) scroll = top;
+            scroll = Mathf.Max(0f, scroll);
+            ApplyScroll();
+        }
+
+        void ApplyScroll()
+        {
+            Text.rectTransform.offsetMin = new Vector2(Pad, Pad + scroll);
+            Text.rectTransform.offsetMax = new Vector2(-Pad, -Pad + scroll);
         }
 
         void PlaceCursor(int index)
