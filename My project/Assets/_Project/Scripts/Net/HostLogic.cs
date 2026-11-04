@@ -32,6 +32,9 @@ namespace TypeDuel.Net
         readonly Dictionary<int, HashSet<int>> countedWords = new Dictionary<int, HashSet<int>>();
         readonly Dictionary<int, string> names = new Dictionary<int, string>();
         readonly Dictionary<int, Suggestion> suggestions = new Dictionary<int, Suggestion>();
+        readonly Dictionary<int, int> progress = new Dictionary<int, int>();
+        readonly Dictionary<int, int> dryWords = new Dictionary<int, int>();
+        int textLength;
 
         State state = State.Lobby;
         int wordCount;
@@ -114,7 +117,15 @@ namespace TypeDuel.Net
             wordCount = text.Split(' ').Length;
             state = State.Playing;
             countedWords.Clear();
-            foreach (var id in players) countedWords[id] = new HashSet<int>();
+            progress.Clear();
+            dryWords.Clear();
+            foreach (var id in players)
+            {
+                countedWords[id] = new HashSet<int>();
+                progress[id] = 0;
+                dryWords[id] = 0;
+            }
+            textLength = text.Length;
 
             Debug.Log($"[TD] Match start, {players.Count} players, {text.Length} chars");
             net.Broadcast(MsgType.Start, w =>
@@ -138,6 +149,8 @@ namespace TypeDuel.Net
             players.Remove(id);
             countedWords.Remove(id);
             names.Remove(id);
+            progress.Remove(id);
+            dryWords.Remove(id);
             suggestions.Remove(id);
             if (choice == id) choice = NoChoice;
 
@@ -201,15 +214,41 @@ namespace TypeDuel.Net
             if (wordIndex < 0 || wordIndex >= wordCount) return;
             if (!countedWords.TryGetValue(sender, out var counted) || !counted.Add(wordIndex)) return;
 
-            if (rng.NextDouble() >= Config.PowerChance) return;
+            // Protecao contra azar: depois de PityWords palavras sem poder, a proxima palavra garante um.
+            dryWords.TryGetValue(sender, out int dry);
+            bool guaranteed = dry + 1 >= Config.PityWords;
+            float chance = PowerChanceFor(sender);
 
+            if (!guaranteed && rng.NextDouble() >= chance)
+            {
+                dryWords[sender] = dry + 1;
+                return;
+            }
+
+            dryWords[sender] = 0;
             var power = (byte)rng.Next(PowerInfo.Count);
+            Debug.Log($"[TD] Power to {sender} (guaranteed={guaranteed}, chance={chance:F2})");
             net.SendToClient(sender, MsgType.PowerGranted, w => w.Write(power));
+        }
+
+        /// <summary>Chance base, subindo ate CatchUpMaxChance conforme o jogador fica atras do lider da partida.</summary>
+        float PowerChanceFor(int id)
+        {
+            if (textLength <= 0 || !progress.TryGetValue(id, out int own)) return Config.PowerChance;
+
+            int best = own;
+            foreach (var pair in progress)
+                if (pair.Key != id && pair.Value > best) best = pair.Value;
+
+            float behind = Mathf.Clamp01((best - own) / (textLength * Config.CatchUpFraction));
+            return Mathf.Lerp(Config.PowerChance, Config.CatchUpMaxChance, behind);
         }
 
         void OnProgress(int sender, int prefix)
         {
             if (state != State.Playing) return;
+
+            progress[sender] = prefix;
 
             foreach (var id in players)
             {

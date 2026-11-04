@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using TMPro;
 using UnityEngine;
@@ -18,7 +19,12 @@ namespace TypeDuel.UI
         static readonly string White = "FFFFFF";
         static readonly string Red = UiKit.HexRgb(UiKit.Bad);
 
+        // Cursor vermelho apagado: mostra ate onde cada adversario acertou no texto.
+        static readonly Color OpponentColor = new Color(UiKit.Bad.r, UiKit.Bad.g, UiKit.Bad.b, 0.35f);
+
         readonly StringBuilder sb = new StringBuilder(2048);
+        readonly Dictionary<int, Image> opponentCursors = new Dictionary<int, Image>();
+        readonly Dictionary<int, int> opponentPrefix = new Dictionary<int, int>();
         public readonly TextMeshProUGUI Text;
         public readonly Image Cursor;
         float scroll;
@@ -45,8 +51,17 @@ namespace TypeDuel.UI
         {
             Text.text = "";
             Cursor.gameObject.SetActive(false);
+            foreach (var image in opponentCursors.Values) image.gameObject.SetActive(false);
+            opponentPrefix.Clear();
             scroll = 0f;
             ApplyScroll();
+        }
+
+        /// <summary>Atualiza onde o adversario `id` esta (quantas letras ele ja acertou em sequencia).</summary>
+        public void SetOpponent(int id, int prefix)
+        {
+            opponentPrefix[id] = prefix;
+            PlaceOpponentCursor(id);
         }
 
         /// <summary>Com peek, mostra so o texto original (branco), sem o que foi digitado nem o cursor.</summary>
@@ -94,6 +109,8 @@ namespace TypeDuel.UI
             if (!peek) FollowCursor(m.Cursor);
             if (peek) Cursor.gameObject.SetActive(false);
             else PlaceCursor(m.Cursor);
+
+            foreach (var id in opponentPrefix.Keys) PlaceOpponentCursor(id);
         }
 
         void OpenRun(int state)
@@ -135,35 +152,56 @@ namespace TypeDuel.UI
             Text.rectTransform.offsetMax = new Vector2(-Pad, -Pad + scroll);
         }
 
-        void PlaceCursor(int index)
+        /// <summary>Posicao (x, base e topo da linha) de um caractere; depois do ultimo, fica no fim dele. Falso se nao ha texto.</summary>
+        bool CursorMetrics(int index, out float x, out float bottom, out float top)
         {
             var info = Text.textInfo;
             int count = info.characterCount;
-            if (count == 0)
+            x = bottom = top = 0f;
+            if (count == 0) return false;
+
+            var ci = info.characterInfo[Mathf.Min(index, count - 1)];
+            x = index < count ? ci.origin : ci.xAdvance;
+            bottom = ci.descender;
+            top = ci.ascender;
+            return true;
+        }
+
+        void PlaceCursor(int index)
+        {
+            if (!CursorMetrics(index, out float x, out float bottom, out float top))
             {
                 Cursor.gameObject.SetActive(false);
                 return;
             }
 
-            float x, bottom, top;
-            if (index < count)
-            {
-                var ci = info.characterInfo[index];
-                x = ci.origin;
-                bottom = ci.descender;
-                top = ci.ascender;
-            }
-            else
-            {
-                var ci = info.characterInfo[count - 1];
-                x = ci.xAdvance;
-                bottom = ci.descender;
-                top = ci.ascender;
-            }
-
             Cursor.gameObject.SetActive(true);
             Cursor.rectTransform.sizeDelta = new Vector2(4f, top - bottom);
             Cursor.rectTransform.localPosition = new Vector3(x, bottom, 0f);
+        }
+
+        void PlaceOpponentCursor(int id)
+        {
+            if (!opponentPrefix.TryGetValue(id, out int index)) return;
+
+            if (!opponentCursors.TryGetValue(id, out var image))
+            {
+                image = UiKit.Box(Text.transform, "OpponentCursor" + id, OpponentColor);
+                image.rectTransform.pivot = new Vector2(0.5f, 0f);
+                image.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+                image.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+                opponentCursors[id] = image;
+            }
+
+            if (!CursorMetrics(index, out float x, out float bottom, out float top))
+            {
+                image.gameObject.SetActive(false);
+                return;
+            }
+
+            image.gameObject.SetActive(true);
+            image.rectTransform.sizeDelta = new Vector2(4f, top - bottom);
+            image.rectTransform.localPosition = new Vector3(x, bottom, 0f);
         }
 
         /// <summary>Posicao (mundo/tela) do meio do caractere, usada para a bomba cair na palavra atual.</summary>

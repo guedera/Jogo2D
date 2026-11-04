@@ -484,7 +484,11 @@ namespace TypeDuel
                 {
                     int id = r.ReadInt32();
                     int prefix = r.ReadInt32();
-                    if (model != null) ui.SetOpponentProgress(id, (float)prefix / Mathf.Max(1, model.Target.Length));
+                    if (model != null)
+                    {
+                        ui.SetOpponentProgress(id, (float)prefix / Mathf.Max(1, model.Target.Length));
+                        ui.Typing.SetOpponent(id, prefix);
+                    }
                     break;
                 }
                 case MsgType.GameOver:
