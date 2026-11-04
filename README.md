@@ -20,7 +20,9 @@ Os dois computadores precisam estar na mesma rede (Wi-Fi/cabo) e a porta TCP **7
 - Builds: menu **Tools > TypeDuel > Build macOS / Build Windows** (saída em `My project/Builds/`, ignorada pelo git).
 - Teste sem digitar: `TypeDuel -td-auto host` e `TypeDuel -td-auto join -td-ip 127.0.0.1` (bot de desenvolvimento).
 
-## Créditos
+## Créditos - Colegas da 7° E.Comp 2026.1 (Grupo 2 - Amigos & Thomas)
 
-- Lista de palavras: palavras comuns em inglês, escolhidas pela equipe.
-- Fonte padrão: Liberation Sans (OFL), incluída pelo TextMesh Pro.
+- Yamandu Germano Cavalcanti
+- Guilherme Galvao Guedes
+- Silas André Pereira de Brito
+- Thomas Martins Kassabian
