@@ -23,6 +23,7 @@ namespace TypeDuel
         public const float CatchUpFraction = 0.20f;
         public const float GlitchSeconds = 15f;
         public const int BombEraseChars = 10;
+        public const int ChangeRewindChars = 20;
 
         public const float ConnectTimeoutSeconds = 6f;
     }
