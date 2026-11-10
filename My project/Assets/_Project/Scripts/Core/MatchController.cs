@@ -310,7 +310,7 @@ namespace TypeDuel
             string text;
             if (lobbySelected == HostLogic.GenerateChoice) text = "Text: random words";
             else if (selectedIndex >= 0) text = "Text: " + suggestionLabels[selectedIndex];
-            else text = host != null ? "Choose GENERATE or a suggested text to start" : "Waiting for the host to choose the text...";
+            else text = host != null ? "Choose Generate or a suggested text to start" : "Waiting for the host to choose the text...";
             ui.SetLobbyChoice(text, UiKit.TextDim);
         }
 
@@ -339,7 +339,7 @@ namespace TypeDuel
             string text;
             if (soloChoice == HostLogic.GenerateChoice) text = "Text: random words";
             else if (soloChoice == UploadChoice) text = "Text: " + soloTitle + "  (" + soloWords + " words)";
-            else text = "Choose GENERATE or UPLOAD TEXT to start";
+            else text = "Choose Generate or Upload to start";
             ui.SetLobbyChoice(text, UiKit.TextDim);
         }
 

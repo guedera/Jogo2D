@@ -198,19 +198,19 @@ namespace TypeDuel.UI
             IpText = UiKit.Label(ipBox.transform, "IpText", "", 42f, UiKit.TextMain);
             UiKit.Stretch(IpText.rectTransform);
 
-            JoinButton = UiKit.MakeButton(panel, "JoinButton", "ENTRAR NO JOGO", UiKit.Green, onJoin, new Vector2(370f, 100f));
+            JoinButton = UiKit.MakeButton(panel, "JoinButton", "JOIN GAME", UiKit.Green, onJoin, new Vector2(370f, 100f));
             UiKit.Place(JoinButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(-201f, -142f), new Vector2(370f, 100f));
 
-            HostButton = UiKit.MakeButton(panel, "HostButton", "HOSPEDAR JOGO", UiKit.Blue, onHost, new Vector2(370f, 100f));
+            HostButton = UiKit.MakeButton(panel, "HostButton", "HOST GAME", UiKit.Blue, onHost, new Vector2(370f, 100f));
             UiKit.Place(HostButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(201f, -142f), new Vector2(370f, 100f));
 
-            TrainButton = UiKit.MakeButton(panel, "TrainButton", "TREINAMENTO", UiKit.Yellow, onTrain, new Vector2(770f, 100f));
+            TrainButton = UiKit.MakeButton(panel, "TrainButton", "TRAINING", UiKit.Yellow, onTrain, new Vector2(770f, 100f));
             UiKit.Place(TrainButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0f, -274f), new Vector2(770f, 100f));
 
             MenuStatus = UiKit.Label(panel, "Status", "", 34f, UiKit.Red);
             UiKit.Place(MenuStatus.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -385f), new Vector2(1400f, 60f));
 
-            var hint = UiKit.Label(panel, "Hint", "Ambos Jogadores no mesmo WIFI/Lan. Digite o IP do Host ou CTRL/CMD+V", 26f, UiKit.TextMain);
+            var hint = UiKit.Label(panel, "Hint", "Both players on the same Wi-Fi/LAN. Type the host's IP or paste it with Ctrl/Cmd+V", 26f, UiKit.TextMain);
             UiKit.Place(hint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(1700f, 50f));
         }
 
@@ -222,8 +222,8 @@ namespace TypeDuel.UI
         /// <summary>Campo de nome opcional; vazio e sem foco mostra "(opcional)".</summary>
         public void SetNameText(string name, bool focused, bool showCaret)
         {
-            if (name.Length == 0 && !focused) NameText.text = "<b>Seu nome</b>   (opcional)";
-            else NameText.text = "<b>Seu nome</b>   " + name + (focused && showCaret ? "_" : " ");
+            if (name.Length == 0 && !focused) NameText.text = "<b>Your name</b>   (optional)";
+            else NameText.text = "<b>Your name</b>   " + name + (focused && showCaret ? "_" : " ");
         }
 
         // ------------------------------------------------------------ lobby
@@ -242,7 +242,7 @@ namespace TypeDuel.UI
             UiKit.PlaceTop(players.rectTransform, -290f, LobbyTop, 690f, 640f);
             lobbyPlayersPanel = players.gameObject;
 
-            LobbyPlayers = UiKit.Label(players.transform, "Players", "Jogadores: 1/2", 56f, UiKit.TextMain, style: FontStyles.Bold);
+            LobbyPlayers = UiKit.Label(players.transform, "Players", "Players: 1/2", 56f, UiKit.TextMain, style: FontStyles.Bold);
             UiKit.PlaceTop(LobbyPlayers.rectTransform, 0f, 16f, 650f, 80f);
 
             LobbyIp = UiKit.Label(players.transform, "Ip", "", 36f, UiKit.Blue);
@@ -287,15 +287,15 @@ namespace TypeDuel.UI
             var texto = UiKit.Frame(lobbyRight, "TextoPanel");
             textoPanel = texto.rectTransform;
 
-            var textoTitle = UiKit.Label(texto.transform, "Title", "Texto", 48f, UiKit.TextMain, style: FontStyles.Bold);
+            var textoTitle = UiKit.Label(texto.transform, "Title", "Text", 48f, UiKit.TextMain, style: FontStyles.Bold);
             UiKit.PlaceTop(textoTitle.rectTransform, 0f, 12f, LobbyColumnW - 40f, 64f);
 
             // Origem do texto: Gerar (banco de palavras) ou Enviar (.txt). Os cliques sao ligados no MatchController.
             float half = (LobbyColumnW - 40f - 16f) * 0.5f;
-            GenerateButton = UiKit.MakeButton(texto.transform, "GenerateButton", "Gerar", UiKit.PanelLight, () => { }, new Vector2(half, 64f), 28f);
+            GenerateButton = UiKit.MakeButton(texto.transform, "GenerateButton", "Generate", UiKit.PanelLight, () => { }, new Vector2(half, 64f), 28f);
             UiKit.PlaceTop(GenerateButton.GetComponent<RectTransform>(), -(half * 0.5f + 8f), 84f, half, 64f);
 
-            UploadButton = UiKit.MakeButton(texto.transform, "UploadButton", "Enviar", UiKit.PanelLight, () => { }, new Vector2(half, 64f), 28f);
+            UploadButton = UiKit.MakeButton(texto.transform, "UploadButton", "Upload", UiKit.PanelLight, () => { }, new Vector2(half, 64f), 28f);
             UiKit.PlaceTop(UploadButton.GetComponent<RectTransform>(), half * 0.5f + 8f, 84f, half, 64f);
 
             // Escolha atual do texto (aparece so quando ha mensagem).
@@ -318,10 +318,10 @@ namespace TypeDuel.UI
                 row.gameObject.SetActive(false);
             }
 
-            StartButton = UiKit.MakeButton(lobbyRight, "StartButton", "INICIAR PARTIDA", UiKit.Green, onStart, new Vector2(LobbyColumnW, LobbyButtonH));
+            StartButton = UiKit.MakeButton(lobbyRight, "StartButton", "START MATCH", UiKit.Green, onStart, new Vector2(LobbyColumnW, LobbyButtonH));
             startRect = StartButton.GetComponent<RectTransform>();
 
-            LeaveButton = UiKit.MakeButton(lobbyRight, "LeaveButton", "ABANDONAR", UiKit.Red, onLeave, new Vector2(LobbyColumnW, LobbyButtonH));
+            LeaveButton = UiKit.MakeButton(lobbyRight, "LeaveButton", "LEAVE", UiKit.Red, onLeave, new Vector2(LobbyColumnW, LobbyButtonH));
             leaveRect = LeaveButton.GetComponent<RectTransform>();
 
             RelayoutLobby();
@@ -401,12 +401,12 @@ namespace TypeDuel.UI
         public void SetLobbyMode(bool solo)
         {
             lobbySolo = solo;
-            lobbyTitle.text = solo ? "TREINAMENTO" : "LOBBY";
+            lobbyTitle.text = solo ? "TRAINING" : "LOBBY";
             lobbyPlayersPanel.SetActive(!solo);
             LobbyIp.gameObject.SetActive(!solo);
             LobbyPlayers.gameObject.SetActive(!solo);
             LobbyInfo.gameObject.SetActive(!solo);
-            StartButton.GetComponentInChildren<TMP_Text>().text = solo ? "INICIAR TREINO" : "INICIAR PARTIDA";
+            StartButton.GetComponentInChildren<TMP_Text>().text = solo ? "START TRAINING" : "START MATCH";
 
             SetSuggestions(new List<string>(), -1);
             SetSourceSelection(false, false);
@@ -462,7 +462,7 @@ namespace TypeDuel.UI
 
             // Cronometro funcional apenas no treino
             trainingPanel = UiKit.Frame(panel, "TrainingPanel").rectTransform;
-            var matchTitle = UiKit.Label(trainingPanel, "Title", "Treino", 32f, UiKit.TextMain, TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
+            var matchTitle = UiKit.Label(trainingPanel, "Title", "Training", 32f, UiKit.TextMain, TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
             UiKit.PlaceTop(matchTitle.rectTransform, 0f, 16f, inner, 44f);
             trainingTimer = UiKit.Label(trainingPanel, "Timer", "000s", 64f, UiKit.TextMain, TextAlignmentOptions.MidlineLeft);
             UiKit.PlaceTop(trainingTimer.rectTransform, 0f, 62f, inner, 80f);
@@ -475,7 +475,7 @@ namespace TypeDuel.UI
 
             // Efeitos (fila de poderes)
             effectsPanel = UiKit.Frame(panel, "EffectsPanel").rectTransform;
-            var effectsTitle = UiKit.Label(effectsPanel, "Title", "Efeitos", 32f, UiKit.TextMain, TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
+            var effectsTitle = UiKit.Label(effectsPanel, "Title", "Powers", 32f, UiKit.TextMain, TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
             UiKit.PlaceTop(effectsTitle.rectTransform, 0f, 16f, inner, 40f);
 
             slotsHint = UiKit.Label(effectsPanel, "SlotsHint", "", 20f, UiKit.TextDim, TextAlignmentOptions.TopLeft);
@@ -521,7 +521,7 @@ namespace TypeDuel.UI
                 cell.gameObject.SetActive(i < SlotColumns);
             }
 
-            slotsHint.text = "Palavras roxas dão efeitos (máx. 3)";
+            slotsHint.text = "Purple words give powers (max. 3)";
             RefreshEffectsLayout();
             LayoutSidePanels();
 
@@ -584,7 +584,7 @@ namespace TypeDuel.UI
             float rowW = ProgressWidth;
             int index = 0;
 
-            ownRow = new PlayerRow(rowsRoot, "OwnRow", string.IsNullOrEmpty(ownName) ? "Você" : ownName, UiKit.PlayerColor(index), rowW, PlayerRowH);
+            ownRow = new PlayerRow(rowsRoot, "OwnRow", string.IsNullOrEmpty(ownName) ? "You" : ownName, UiKit.PlayerColor(index), rowW, PlayerRowH);
             UiKit.PlaceTop(ownRow.Root, 0f, index * PlayerRowH, rowW, PlayerRowH);
             Typing.SetOwnColor(UiKit.PlayerColor(index));
             index++;
@@ -593,7 +593,7 @@ namespace TypeDuel.UI
             {
                 int id = opponentIds[i];
                 string name = opponentNames[i];
-                string label = !string.IsNullOrEmpty(name) ? name : (opponentIds.Count > 1 ? "Jogador " + id : "Oponente");
+                string label = !string.IsNullOrEmpty(name) ? name : (opponentIds.Count > 1 ? "Player " + id : "Opponent");
                 var color = UiKit.PlayerColor(index);
 
                 var row = new PlayerRow(rowsRoot, "Row" + id, label, color, rowW, PlayerRowH);
@@ -646,7 +646,7 @@ namespace TypeDuel.UI
 
             int extra = queue.Count - MaxSlots;
             slotsMore.text = extra > 0 ? "+" + extra : "";
-            slotsHint.text = queue.Count > 0 ? "Próximo: " + PowerInfo.Name(queue[0]) + "\nCtrl + digite o nome" : "Palavras roxas dão efeitos (máx. 3)";
+            slotsHint.text = queue.Count > 0 ? "Next: " + PowerInfo.Name(queue[0]) + "\nCtrl + type its name" : "Purple words give powers (max. 3)";
 
             RefreshEffectsLayout();
             LayoutSidePanels();
@@ -740,16 +740,16 @@ namespace TypeDuel.UI
             resultSub = UiKit.Label(panel.transform, "Sub", "", 40f, UiKit.TextDim);
             UiKit.Place(resultSub.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 30f), new Vector2(1600f, 60f));
 
-            PlayAgainButton = UiKit.MakeButton(panel.transform, "PlayAgain", "JOGAR NOVAMENTE", UiKit.Green, onPlayAgain, new Vector2(480f, 96f));
+            PlayAgainButton = UiKit.MakeButton(panel.transform, "PlayAgain", "PLAY AGAIN", UiKit.Green, onPlayAgain, new Vector2(480f, 96f));
             UiKit.Place(PlayAgainButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0f, -100f), new Vector2(480f, 96f));
 
-            resultWaiting = UiKit.Label(panel.transform, "Waiting", "Aguardando o host iniciar outra partida...", 36f, UiKit.TextDim);
+            resultWaiting = UiKit.Label(panel.transform, "Waiting", "Waiting for the host to start another match...", 36f, UiKit.TextDim);
             UiKit.Place(resultWaiting.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -100f), new Vector2(1600f, 60f));
 
-            TrainAgainButton = UiKit.MakeButton(panel.transform, "TrainAgain", "TREINAR NOVAMENTE", UiKit.Green, onTrainAgain, new Vector2(480f, 96f));
+            TrainAgainButton = UiKit.MakeButton(panel.transform, "TrainAgain", "TRAIN AGAIN", UiKit.Green, onTrainAgain, new Vector2(480f, 96f));
             UiKit.Place(TrainAgainButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0f, -100f), new Vector2(480f, 96f));
 
-            ResultMenuButton = UiKit.MakeButton(panel.transform, "Menu", "MENU PRINCIPAL", UiKit.Red, onMenu, new Vector2(360f, 80f));
+            ResultMenuButton = UiKit.MakeButton(panel.transform, "Menu", "MAIN MENU", UiKit.Red, onMenu, new Vector2(360f, 80f));
             UiKit.Place(ResultMenuButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0f, -230f), new Vector2(360f, 80f));
         }
 
@@ -767,10 +767,10 @@ namespace TypeDuel.UI
             leaveMessage.textWrappingMode = TextWrappingModes.Normal;
             UiKit.PlaceTop(leaveMessage.rectTransform, 0f, 118f, 880f, 100f);
 
-            ContinueButton = UiKit.MakeButton(box.transform, "Continue", "CONTINUAR JOGANDO", UiKit.Blue,
+            ContinueButton = UiKit.MakeButton(box.transform, "Continue", "KEEP PLAYING", UiKit.Blue,
                 HideLeaveConfirmation, new Vector2(420f, 80f), 28f);
             UiKit.PlaceTop(ContinueButton.GetComponent<RectTransform>(), -230f, 260f, 420f, 80f);
-            ConfirmLeaveButton = UiKit.MakeButton(box.transform, "ConfirmLeave", "ABANDONAR PARTIDA", UiKit.Red,
+            ConfirmLeaveButton = UiKit.MakeButton(box.transform, "ConfirmLeave", "LEAVE MATCH", UiKit.Red,
                 () => { HideLeaveConfirmation(); onLeave(); }, new Vector2(420f, 80f), 28f);
             UiKit.PlaceTop(ConfirmLeaveButton.GetComponent<RectTransform>(), 230f, 260f, 420f, 80f);
 
@@ -779,20 +779,20 @@ namespace TypeDuel.UI
                 selectOnLeft = ConfirmLeaveButton, selectOnRight = ConfirmLeaveButton };
             ConfirmLeaveButton.navigation = new Navigation { mode = Navigation.Mode.Explicit,
                 selectOnLeft = ContinueButton, selectOnRight = ContinueButton };
-            var hint = UiKit.Label(box.transform, "Hint", "Esc para continuar", 22f, UiKit.TextDim);
+            var hint = UiKit.Label(box.transform, "Hint", "Esc to continue", 22f, UiKit.TextDim);
             UiKit.PlaceTop(hint.rectTransform, 0f, 354f, 880f, 30f);
             leaveConfirmation.SetActive(false);
         }
 
         public void ShowLeaveConfirmation(bool lobby, bool training, bool host)
         {
-            leaveTitle.text = lobby ? "SAIR DO LOBBY?" : training ? "ABANDONAR O TREINO?" : "ABANDONAR A PARTIDA?";
+            leaveTitle.text = lobby ? "LEAVE THE LOBBY?" : training ? "LEAVE TRAINING?" : "LEAVE THE MATCH?";
             leaveMessage.text = lobby
-                ? (host ? "Ao sair, a sala será encerrada para todos." : "Você voltará ao menu principal.")
-                : (host ? "Ao abandonar, a partida será encerrada para todos.\n" : "Seu progresso nesta partida será perdido.\n")
-                    + "A partida continua enquanto esta janela estiver aberta.";
-            ContinueButton.GetComponentInChildren<TMP_Text>().text = lobby ? "CONTINUAR NO LOBBY" : "CONTINUAR JOGANDO";
-            ConfirmLeaveButton.GetComponentInChildren<TMP_Text>().text = lobby ? "SAIR DO LOBBY" : training ? "ABANDONAR TREINO" : "ABANDONAR PARTIDA";
+                ? (host ? "If you leave, the room closes for everyone." : "You will return to the main menu.")
+                : (host ? "If you leave, the match ends for everyone.\n" : "Your progress in this match will be lost.\n")
+                    + "The match keeps running while this window is open.";
+            ContinueButton.GetComponentInChildren<TMP_Text>().text = lobby ? "STAY IN LOBBY" : "KEEP PLAYING";
+            ConfirmLeaveButton.GetComponentInChildren<TMP_Text>().text = lobby ? "LEAVE LOBBY" : training ? "LEAVE TRAINING" : "LEAVE MATCH";
             leaveConfirmation.SetActive(true);
             leaveConfirmation.transform.SetAsLastSibling();
             if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(ContinueButton.gameObject);
@@ -826,7 +826,7 @@ namespace TypeDuel.UI
         {
             HideLeaveConfirmation();
             resultPanel.SetActive(true);
-            resultTitle.text = won ? "VOCÊ VENCEU!" : "VOCÊ PERDEU";
+            resultTitle.text = won ? "YOU WIN!" : "YOU LOSE";
             resultTitle.color = won ? UiKit.Green : UiKit.Red;
             resultSub.text = subtitle;
             PlayAgainButton.gameObject.SetActive(isHost);
@@ -838,9 +838,9 @@ namespace TypeDuel.UI
         {
             HideLeaveConfirmation();
             resultPanel.SetActive(true);
-            resultTitle.text = "TEMPO!";
+            resultTitle.text = "TIME'S UP!";
             resultTitle.color = UiKit.Blue;
-            resultSub.text = Mathf.RoundToInt(wpm) + " PPM   |   " + Mathf.RoundToInt(accuracy * 100f) + "% de precisão";
+            resultSub.text = Mathf.RoundToInt(wpm) + " WPM   |   " + Mathf.RoundToInt(accuracy * 100f) + "% accuracy";
             PlayAgainButton.gameObject.SetActive(false);
             resultWaiting.gameObject.SetActive(false);
             TrainAgainButton.gameObject.SetActive(true);
