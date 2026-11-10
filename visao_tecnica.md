@@ -165,7 +165,7 @@ texto exibido = typed  (cada letra branca ou vermelha, mostrando a letra digitad
 
 ### 4.5 Assets (todos placeholder no protótipo)
 
-- 4 ícones de poder, sprite de bomba, explosão (partículas).
+- Ícones de AUTOCOMPLETE, BOBOMB, CHANGE e GLITCH fornecidos pelo usuário em `Resources/PowerIcons/`. O inventário exibe as imagens completas, sem rótulos embaixo; a dica mostra o nome do próximo poder e como usá-lo. Espaços vazios ficam com moldura. Sprite de bomba e explosão continuam com arte simples.
 - Sons: tecla, erro, poder sorteado, uso, explosão, vitória/derrota.
 - Fonte monoespaçada.
 - **Banco de palavras em inglês** (lista de palavras comuns). Se vier de fonte externa, **creditar no `README.md`**, como exige o enunciado.

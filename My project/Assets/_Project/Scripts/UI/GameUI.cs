@@ -30,7 +30,6 @@ namespace TypeDuel.UI
         const float PlayerRowH = 56f;
         const float ProgressWidth = 1230f;
         const float SlotSize = 92f;
-        const float SlotLabelH = 26f;
         const float SlotGap = 12f;
         const float EffectsHeaderH = 104f;
 
@@ -100,14 +99,26 @@ namespace TypeDuel.UI
         readonly Image[] slotImages = new Image[MaxSlots];
         readonly Outline[] slotOutlines = new Outline[MaxSlots];
         readonly Image[] slotIcons = new Image[MaxSlots];
-        readonly TMP_Text[] slotLabels = new TMP_Text[MaxSlots];
         float playersPanelH = 100f;
         int slotRows = 1;
         float toastTimer;
         float flashAlpha;
 
-        /// <summary>Icone de cada efeito (opcional). Enquanto devolver null, o slot mostra so o quadrado colorido de placeholder.</summary>
-        public Func<PowerType, Sprite> PowerIconProvider { get; set; }
+        static readonly Dictionary<PowerType, Sprite> powerIcons = new Dictionary<PowerType, Sprite>();
+
+        /// <summary>Icones fornecidos para os poderes, carregados uma unica vez e incluidos nos builds.</summary>
+        public Func<PowerType, Sprite> PowerIconProvider { get; set; } = LoadPowerIcon;
+
+        static Sprite LoadPowerIcon(PowerType power)
+        {
+            if (powerIcons.TryGetValue(power, out var sprite)) return sprite;
+            var texture = Resources.Load<Texture2D>("PowerIcons/" + PowerInfo.Name(power).ToLowerInvariant());
+            if (texture == null) return null;
+            sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+            sprite.name = PowerInfo.Name(power);
+            powerIcons[power] = sprite;
+            return sprite;
+        }
 
         // Confirmacao de abandono, desenhada acima de todas as telas.
         GameObject leaveConfirmation;
@@ -476,7 +487,7 @@ namespace TypeDuel.UI
 
             slotsRoot = UiKit.NewRect("Slots", effectsPanel);
             var grid = slotsRoot.gameObject.AddComponent<GridLayoutGroup>();
-            grid.cellSize = new Vector2(SlotSize, SlotSize + 4f + SlotLabelH);
+            grid.cellSize = new Vector2(SlotSize, SlotSize);
             grid.spacing = new Vector2(SlotGap, 8f);
             grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
             grid.startAxis = GridLayoutGroup.Axis.Horizontal;
@@ -488,7 +499,7 @@ namespace TypeDuel.UI
             {
                 var cell = UiKit.NewRect("Slot" + i, slotsRoot);
 
-                // Quadrado do efeito: colorido quando ocupado, so borda quando vazio. O icone entra por cima (PowerIconProvider).
+                // Imagem completa do poder; os espacos vazios mantem apenas a moldura.
                 var square = UiKit.Box(cell, "Square", UiKit.PanelLight);
                 var sr = square.rectTransform;
                 sr.anchorMin = new Vector2(0f, 1f);
@@ -499,26 +510,14 @@ namespace TypeDuel.UI
                 var outline = UiKit.AddBorder(square);
 
                 var icon = UiKit.Box(square.transform, "Icon", Color.white);
-                UiKit.Stretch(icon.rectTransform, 14f);
+                UiKit.Stretch(icon.rectTransform);
                 icon.preserveAspect = true;
                 icon.enabled = false;
-
-                var label = UiKit.Label(cell, "Label", "", 20f, UiKit.TextMain);
-                label.enableAutoSizing = true;
-                label.fontSizeMin = 10f;
-                label.fontSizeMax = 20f;
-                var lr = label.rectTransform;
-                lr.anchorMin = new Vector2(0f, 0f);
-                lr.anchorMax = new Vector2(1f, 0f);
-                lr.pivot = new Vector2(0.5f, 0f);
-                lr.anchoredPosition = Vector2.zero;
-                lr.sizeDelta = new Vector2(0f, SlotLabelH);
 
                 slotCells[i] = cell;
                 slotImages[i] = square;
                 slotOutlines[i] = outline;
                 slotIcons[i] = icon;
-                slotLabels[i] = label;
                 cell.gameObject.SetActive(i < SlotColumns);
             }
 
@@ -569,7 +568,7 @@ namespace TypeDuel.UI
             UiKit.PlaceTop(effectsPanel, x, y, SidePanelW, EffectsHeaderH + GridHeight() + 16f);
         }
 
-        float GridHeight() => slotRows * (SlotSize + 4f + SlotLabelH) + (slotRows - 1) * 8f;
+        float GridHeight() => slotRows * (SlotSize) + (slotRows - 1) * 8f;
 
         void RefreshEffectsLayout()
         {
@@ -634,13 +633,11 @@ namespace TypeDuel.UI
                 {
                     slotImages[i].color = UiKit.PanelLight;
                     slotIcons[i].enabled = false;
-                    slotLabels[i].text = "";
                     continue;
                 }
 
                 var type = queue[i];
                 slotImages[i].color = PowerInfo.Color(type);
-                slotLabels[i].text = PowerInfo.Name(type);
 
                 var sprite = PowerIconProvider?.Invoke(type);
                 slotIcons[i].sprite = sprite;
@@ -649,7 +646,7 @@ namespace TypeDuel.UI
 
             int extra = queue.Count - MaxSlots;
             slotsMore.text = extra > 0 ? "+" + extra : "";
-            slotsHint.text = queue.Count > 0 ? "Ctrl, depois digite o nome do efeito" : "Palavras roxas dão efeitos (máx. 3)";
+            slotsHint.text = queue.Count > 0 ? "Próximo: " + PowerInfo.Name(queue[0]) + "\nCtrl + digite o nome" : "Palavras roxas dão efeitos (máx. 3)";
 
             RefreshEffectsLayout();
             LayoutSidePanels();
