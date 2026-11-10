@@ -11,7 +11,7 @@ namespace TypeDuel.UI
     /// <summary>Constroi e controla todas as telas (menu, lobby, partida, resultado) por codigo.</summary>
     public sealed class GameUI
     {
-        const int MaxSlots = 6;
+        const int MaxSlots = Config.MaxHeldPowers;
         const int SlotColumns = 3;
 
         // Layout do lobby (referencia 1920x1080)
@@ -478,7 +478,7 @@ namespace TypeDuel.UI
                 var cell = UiKit.NewRect("Slot" + i, slotsRoot);
 
                 // Quadrado do efeito: colorido quando ocupado, so borda quando vazio. O icone entra por cima (PowerIconProvider).
-                var square = UiKit.Box(cell, "Square", Color.white);
+                var square = UiKit.Box(cell, "Square", UiKit.PanelLight);
                 var sr = square.rectTransform;
                 sr.anchorMin = new Vector2(0f, 1f);
                 sr.anchorMax = new Vector2(1f, 1f);
@@ -493,6 +493,9 @@ namespace TypeDuel.UI
                 icon.enabled = false;
 
                 var label = UiKit.Label(cell, "Label", "", 20f, UiKit.TextMain);
+                label.enableAutoSizing = true;
+                label.fontSizeMin = 10f;
+                label.fontSizeMax = 20f;
                 var lr = label.rectTransform;
                 lr.anchorMin = new Vector2(0f, 0f);
                 lr.anchorMax = new Vector2(1f, 0f);
@@ -508,7 +511,7 @@ namespace TypeDuel.UI
                 cell.gameObject.SetActive(i < SlotColumns);
             }
 
-            slotsHint.text = "Termine palavras para ganhar efeitos";
+            slotsHint.text = "Palavras roxas dão efeitos (máx. 3)";
             RefreshEffectsLayout();
             LayoutSidePanels();
 
@@ -619,7 +622,7 @@ namespace TypeDuel.UI
                 slotOutlines[i].enabled = !has;
                 if (!has)
                 {
-                    slotImages[i].color = Color.white;
+                    slotImages[i].color = UiKit.PanelLight;
                     slotIcons[i].enabled = false;
                     slotLabels[i].text = "";
                     continue;
@@ -636,7 +639,7 @@ namespace TypeDuel.UI
 
             int extra = queue.Count - MaxSlots;
             slotsMore.text = extra > 0 ? "+" + extra : "";
-            slotsHint.text = queue.Count > 0 ? "Ctrl, depois digite o nome do efeito" : "Termine palavras para ganhar efeitos";
+            slotsHint.text = queue.Count > 0 ? "Ctrl, depois digite o nome do efeito" : "Palavras roxas dão efeitos (máx. 3)";
 
             RefreshEffectsLayout();
             LayoutSidePanels();
@@ -716,7 +719,7 @@ namespace TypeDuel.UI
 
         void BuildResult(RectTransform root, Action onPlayAgain, Action onMenu, Action onTrainAgain)
         {
-            var panel = UiKit.Box(root, "ResultPanel", new Color(1f, 1f, 1f, 0.97f), raycast: true);
+            var panel = UiKit.Box(root, "ResultPanel", UiKit.Background, raycast: true);
             UiKit.Stretch(panel.rectTransform);
             resultPanel = panel.gameObject;
 

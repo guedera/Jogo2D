@@ -14,13 +14,9 @@ namespace TypeDuel
         public const int ExtraTypedLimit = 20;
         public const float CountdownSeconds = 3f;
 
-        public const float PowerChance = 0.15f;
-        /// <summary>Depois desta quantidade de palavras sem poder, a proxima palavra garante um poder.</summary>
-        public const int PityWords = 20;
-        /// <summary>Chance maxima de poder para quem esta atras (sobe a partir de PowerChance).</summary>
-        public const float CatchUpMaxChance = 0.30f;
-        /// <summary>Distancia para o lider, em fracao do texto, em que a chance chega ao maximo.</summary>
-        public const float CatchUpFraction = 0.20f;
+        public const float PowerWordFraction = 0.15f;
+        public const int MaxHeldPowers = 3;
+        public const int AutocompleteWords = 10;
         public const float GlitchSeconds = 15f;
         public const int BombEraseChars = 10;
         public const int ChangeRewindChars = 20;

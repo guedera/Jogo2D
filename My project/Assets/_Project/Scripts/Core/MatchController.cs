@@ -103,6 +103,13 @@ namespace TypeDuel
             float dt = Time.deltaTime;
 
             AttachKeyboard();
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame
+                && (State != MatchState.Menu || net != null))
+            {
+                LeaveToMenu(null);
+                return;
+            }
+
             net?.Tick();
             ui.Tick(dt);
 
@@ -400,6 +407,8 @@ namespace TypeDuel
         public void LeaveToMenu(string message)
         {
             StopAllCoroutines();
+            StopCasting();
+            peeking = false;
             net?.Dispose();
             net = null;
             host = null;
@@ -461,12 +470,16 @@ namespace TypeDuel
                     for (int i = 0; i < n; i++) ids.Add(r.ReadInt32());
                     var names = new List<string>(n);
                     for (int i = 0; i < n; i++) names.Add(r.ReadString());
+                    int rewardCount = r.ReadInt32();
+                    var rewards = new List<int>(rewardCount);
+                    for (int i = 0; i < rewardCount; i++) rewards.Add(r.ReadInt32());
                     BeginMatch(text, ids, names, false);
+                    ui.Typing.SetPowerWords(model, rewards);
                     break;
                 }
                 case MsgType.PowerGranted:
                 {
-                    if (State != MatchState.Playing) break;
+                    if (State != MatchState.Playing || queue.Count >= Config.MaxHeldPowers) break;
                     var power = (PowerType)r.ReadByte();
                     queue.Add(power);
                     ui.SetSlots(queue);
@@ -751,19 +764,20 @@ namespace TypeDuel
 
         void ReportProgress()
         {
-            // Palavras completadas (conta 1 vez cada; o host tambem valida).
-            var ends = model.WordEnds;
-            while (wordsReported < ends.Count - 1 && model.CorrectPrefix >= ends[wordsReported])
-            {
-                int index = wordsReported++;
-                net.SendToServer(MsgType.WordDone, w => w.Write(index));
-            }
-
+            // Envia o progresso antes das palavras para o host avaliar quem esta atras.
             if (model.CorrectPrefix != lastSentPrefix)
             {
                 lastSentPrefix = model.CorrectPrefix;
                 int prefix = lastSentPrefix;
                 net.SendToServer(MsgType.Progress, w => w.Write(prefix));
+            }
+
+            var ends = model.WordEnds;
+            while (wordsReported < ends.Count - 1 && model.CorrectPrefix >= ends[wordsReported])
+            {
+                int index = wordsReported++;
+                ui.Typing.ConsumePowerWord(model, index);
+                net.SendToServer(MsgType.WordDone, w => w.Write(index));
             }
 
             if (!finishedSent && model.IsComplete)
@@ -784,11 +798,12 @@ namespace TypeDuel
 
         public void UsePower(PowerType power)
         {
-            if (State != MatchState.Playing || !queue.Remove(power)) return;
+            if (State != MatchState.Playing || queue.Count == 0 || queue[0] != power) return;
+            queue.RemoveAt(0);
 
             ui.SetSlots(queue);
             net.SendToServer(MsgType.UsePower, w => w.Write((byte)power));
-            ui.ShowToast("Sent " + PowerInfo.Name(power) + "!", PowerInfo.Color(power));
+            ui.ShowToast("Used " + PowerInfo.Name(power) + "!", PowerInfo.Color(power));
             Debug.Log($"[TD] Used power {power}");
         }
 
@@ -804,7 +819,7 @@ namespace TypeDuel
         {
             if (queue.Count == 0)
             {
-                ui.ShowToast("No powers yet - finish words to earn them", UiKit.TextDim);
+                ui.ShowToast("No powers yet - finish purple words to earn them", UiKit.TextDim);
                 return;
             }
 
@@ -874,6 +889,13 @@ namespace TypeDuel
 
             switch (power)
             {
+                case PowerType.Autocomplete:
+                {
+                    model.Autocomplete(Config.AutocompleteWords);
+                    AfterEdit();
+                    ui.ShowToast("AUTOCOMPLETE!", PowerInfo.Color(power));
+                    break;
+                }
                 case PowerType.Bobomb:
                 {
                     // A bomba cai na palavra onde o jogador esta digitando agora.

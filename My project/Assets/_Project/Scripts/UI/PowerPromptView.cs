@@ -11,7 +11,7 @@ namespace TypeDuel.UI
 
         public PowerPromptView(Transform parent)
         {
-            var dim = UiKit.Box(parent, "PromptDim", new Color(1f, 1f, 1f, 0.88f));
+            var dim = UiKit.Box(parent, "PromptDim", new Color(0.07f, 0.08f, 0.11f, 0.94f));
             UiKit.Stretch(dim.rectTransform);
             root = dim.gameObject;
 
@@ -21,10 +21,10 @@ namespace TypeDuel.UI
             var title = UiKit.Label(box.transform, "PromptTitle", "USAR UM EFEITO", 34f, UiKit.TextDim, style: FontStyles.Bold);
             UiKit.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -45f), new Vector2(900f, 50f));
 
-            text = UiKit.Label(box.transform, "PromptText", "", 150f, UiKit.TextMain);
+            text = UiKit.Label(box.transform, "PromptText", "", 100f, UiKit.TextMain);
             UiKit.Place(text.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 10f), new Vector2(900f, 200f));
 
-            var hint = UiKit.Label(box.transform, "PromptHint", "BOBOMB  GLITCH  CHANGE   |   Ctrl ou Espaço para cancelar", 28f, UiKit.TextDim);
+            var hint = UiKit.Label(box.transform, "PromptHint", "BOBOMB  GLITCH  CHANGE  AUTOCOMPLETE\nCtrl ou Espaço para cancelar", 24f, UiKit.TextDim);
             UiKit.Place(hint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(950f, 50f));
 
             root.SetActive(false);

@@ -8,9 +8,9 @@ using UnityEngine.UI;
 namespace TypeDuel.UI
 {
     /// <summary>
-    /// Desenha o texto da partida: o que foi digitado (preto = certo, vermelho = errado) seguido do resto do alvo em cinza.
-    /// A linha onde o jogador esta digitando fica sempre parada no centro vertical (sobre uma faixa cinza clara) e o resto do
-    /// texto rola em volta dela; as demais linhas ficam mais apagadas quanto mais longe da linha atual.
+    /// Desenha o texto da partida: o que foi digitado (branco = certo, vermelho = errado) seguido do resto do alvo em cinza.
+    /// A linha onde o jogador esta digitando fica sempre parada no centro vertical (sobre uma faixa escura) e o resto do
+    /// texto rola em volta dela; somente a linha anterior e a proxima tambem ficam visiveis.
     /// </summary>
     public sealed class TypingView
     {
@@ -30,10 +30,13 @@ namespace TypeDuel.UI
         const float CapHeight = 3f;
 
         // Opacidade por distancia (em linhas) ate a linha atual.
-        static readonly float[] LineAlpha = { 1f, 0.8f, 0.6f, 0.42f, 0.28f, 0.16f, 0.07f };
+        static readonly float[] LineAlpha = { 1f, 1f, 0f };
 
-        const string Gray = "7F7F7F";
-        const string Black = "000000";
+        const string Gray = "929BAD";
+        const string White = "F1F3F9";
+        static readonly string Purple = UiKit.HexRgb(UiKit.Purple);
+        readonly HashSet<int> rewardCharacters = new HashSet<int>();
+        int currentLine;
         static readonly string Red = UiKit.HexRgb(UiKit.Red);
 
         readonly StringBuilder sb = new StringBuilder(4096);
@@ -63,7 +66,7 @@ namespace TypeDuel.UI
             parent.gameObject.AddComponent<RectMask2D>();
 
             // Faixa da linha atual (atras do texto), fixa no centro da area.
-            band = UiKit.Box(parent, "LineBand", UiKit.Hex("#F0F0F0"));
+            band = UiKit.Box(parent, "LineBand", UiKit.PanelLight);
             var br = band.rectTransform;
             br.anchorMin = new Vector2(0f, 0.5f);
             br.anchorMax = new Vector2(1f, 0.5f);
@@ -84,6 +87,24 @@ namespace TypeDuel.UI
             ApplyScroll();
         }
 
+        public void SetPowerWords(TypingModel model, IEnumerable<int> words)
+        {
+            rewardCharacters.Clear();
+            foreach (int word in words)
+            {
+                if (word < 0 || word >= model.WordEnds.Count) continue;
+                int start = word == 0 ? 0 : model.WordEnds[word - 1];
+                for (int i = start; i < model.WordEnds[word]; i++)
+                    if (model.Target[i] != ' ') rewardCharacters.Add(i);
+            }
+        }
+
+        public void ConsumePowerWord(TypingModel model, int word)
+        {
+            int start = word == 0 ? 0 : model.WordEnds[word - 1];
+            for (int i = start; i < model.WordEnds[word]; i++) rewardCharacters.Remove(i);
+        }
+
         public void SetOwnColor(Color color) => ownCursor.SetColor(color);
 
         /// <summary>Cor do cursor do adversario `id` (a mesma do icone dele na lista de jogadores).</summary>
@@ -96,6 +117,7 @@ namespace TypeDuel.UI
         public void Clear()
         {
             Text.text = "";
+            rewardCharacters.Clear();
             ownCursor.Hide();
             band.gameObject.SetActive(false);
             foreach (var glyph in opponentCursors.Values) glyph.Hide();
@@ -124,7 +146,7 @@ namespace TypeDuel.UI
             PlaceOpponentCursor(id);
         }
 
-        /// <summary>Com peek, mostra so o texto original (preto, sem apagar), sem o que foi digitado nem o cursor.</summary>
+        /// <summary>Com peek, mostra so o texto original (mantendo a janela de tres linhas), sem o que foi digitado nem o cursor.</summary>
         public void Render(TypingModel m, bool glitch, bool peek)
         {
             int typedLen = peek ? 0 : m.TypedLength;
@@ -135,13 +157,15 @@ namespace TypeDuel.UI
             Text.ForceMeshUpdate();
 
             // As linhas so mudam quando o texto e trocado; nesse caso refaz uma vez com o apagado certo.
-            if (!peek && RefreshLines())
+            if (RefreshLines())
             {
                 BuildString(m, glitch, peek, typedLen, total);
                 Text.text = sb.ToString();
                 Text.ForceMeshUpdate();
             }
 
+            currentLine = LineOf(m.Cursor);
+            FollowCursor(m.Cursor);
             if (peek)
             {
                 ownCursor.Hide();
@@ -149,7 +173,6 @@ namespace TypeDuel.UI
             }
             else
             {
-                FollowCursor(m.Cursor);
                 PlaceCursor(m.Cursor);
             }
 
@@ -167,8 +190,8 @@ namespace TypeDuel.UI
             sb.Clear();
             if (FixedWidth) sb.Append("<mspace=").Append(MonoWidth).Append('>');
 
-            int cursorLine = peek ? 0 : LineOf(m.Cursor);
-            int run = -1; // estado * 16 + faixa de opacidade; estado: 0 cinza, 1 preto, 2 vermelho
+            int cursorLine = LineOf(m.Cursor);
+            int run = -1; // estado * 16 + faixa de opacidade; estado: 0 cinza, 1 branco, 2 vermelho, 3 roxo
 
             for (int i = 0; i < total; i++)
             {
@@ -182,10 +205,10 @@ namespace TypeDuel.UI
                 else
                 {
                     ch = m.Target[i];
-                    state = peek ? 1 : 0;
+                    state = rewardCharacters.Contains(i) ? 3 : (peek ? 1 : 0);
                 }
 
-                int fade = peek ? 0 : Math.Min(Math.Abs(LineOf(i) - cursorLine), LineAlpha.Length - 1);
+                int fade = Math.Min(Math.Abs(LineOf(i) - cursorLine), LineAlpha.Length - 1);
                 int key = state * 16 + fade;
                 if (key != run)
                 {
@@ -209,7 +232,7 @@ namespace TypeDuel.UI
             float alpha = LineAlpha[key % 16];
             string a = ((int)(alpha * 255f)).ToString("X2");
 
-            sb.Append("<color=#").Append(state == 0 ? Gray : state == 1 ? Black : Red).Append(a).Append('>');
+            sb.Append("<color=#").Append(state == 0 ? Gray : state == 1 ? White : state == 3 ? Purple : Red).Append(a).Append('>');
             if (state == 2) sb.Append("<mark=#").Append(Red).Append(((int)(alpha * 64f)).ToString("X2")).Append('>');
         }
 
@@ -319,7 +342,7 @@ namespace TypeDuel.UI
                 opponentCursors[id] = glyph;
             }
 
-            if (!CursorMetrics(index, out float x, out float bottom, out float top))
+            if (Math.Abs(LineOf(index) - currentLine) > 1 || !CursorMetrics(index, out float x, out float bottom, out float top))
             {
                 glyph.Hide();
                 return;

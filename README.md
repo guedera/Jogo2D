@@ -1,7 +1,7 @@
 # Jogo2D — TYPE DUEL
 Jogos Digitais Insper 2026.2
 
-Jogo versus de digitação em LAN: dois jogadores recebem o mesmo texto de 100 palavras e vence quem digitar tudo certo primeiro. Ao completar palavras o jogador ganha poderes (BOBOMB, GLITCH, CHANGE) para atrapalhar o adversário.
+Jogo versus de digitação em LAN: dois jogadores recebem o mesmo texto de 100 palavras e vence quem digitar tudo certo primeiro. Ao completar palavras roxas o jogador ganha até 3 poderes (BOBOMB, GLITCH, CHANGE, AUTOCOMPLETE) para atrapalhar o adversário.
 
 Detalhes de design e arquitetura em [visao_tecnica.md](visao_tecnica.md).
 
@@ -10,7 +10,9 @@ Detalhes de design e arquitetura em [visao_tecnica.md](visao_tecnica.md).
 1. Um jogador clica em **HOST GAME** e passa o IP que aparece no lobby.
 2. O outro digita esse IP e clica em **JOIN GAME**.
 3. O host clica em **START MATCH**.
-4. Digite o texto. Backspace apaga, setas ← → movem o cursor (uma posição por toque). **Botão esquerdo do mouse** usa o primeiro poder da fila.
+4. Digite o texto. Backspace apaga, setas ← → movem o cursor (uma posição por toque). **Ctrl + nome do poder** usa o primeiro poder da fila. AUTOCOMPLETE só é recebido por quem está atrás e completa até 10 palavras de quem usou.
+
+Pressione **Esc** para sair da partida, treino ou lobby e voltar ao menu principal. Também cancela uma conexão em andamento.
 
 Os dois computadores precisam estar na mesma rede (Wi-Fi/cabo) e a porta TCP **7777** liberada no firewall. Redes de campus podem isolar os dispositivos; se não conectar, use o hotspot do celular.
 

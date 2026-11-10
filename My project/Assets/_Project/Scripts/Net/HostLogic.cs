@@ -33,7 +33,9 @@ namespace TypeDuel.Net
         readonly Dictionary<int, string> names = new Dictionary<int, string>();
         readonly Dictionary<int, Suggestion> suggestions = new Dictionary<int, Suggestion>();
         readonly Dictionary<int, int> progress = new Dictionary<int, int>();
-        readonly Dictionary<int, int> dryWords = new Dictionary<int, int>();
+        readonly Dictionary<int, Queue<byte>> inventories = new Dictionary<int, Queue<byte>>();
+        readonly HashSet<int> powerWords = new HashSet<int>();
+        IReadOnlyList<int> wordEnds;
         int textLength;
 
         State state = State.Lobby;
@@ -118,12 +120,24 @@ namespace TypeDuel.Net
             state = State.Playing;
             countedWords.Clear();
             progress.Clear();
-            dryWords.Clear();
+            inventories.Clear();
+            wordEnds = new TypingModel(text, 0).WordEnds;
+            powerWords.Clear();
+            var candidates = new List<int>();
+            // A ultima palavra encerra a partida, portanto nao concede poder.
+            for (int i = 0; i < wordCount - 1; i++) candidates.Add(i);
+            int rewardCount = Math.Min(candidates.Count, Math.Max(1, (int)Math.Round(wordCount * Config.PowerWordFraction)));
+            for (int i = 0; i < rewardCount; i++)
+            {
+                int pick = rng.Next(candidates.Count);
+                powerWords.Add(candidates[pick]);
+                candidates.RemoveAt(pick);
+            }
             foreach (var id in players)
             {
                 countedWords[id] = new HashSet<int>();
                 progress[id] = 0;
-                dryWords[id] = 0;
+                inventories[id] = new Queue<byte>();
             }
             textLength = text.Length;
 
@@ -134,6 +148,8 @@ namespace TypeDuel.Net
                 w.Write(players.Count);
                 foreach (var id in players) w.Write(id);
                 foreach (var id in players) w.Write(names.TryGetValue(id, out var name) ? name : "");
+                w.Write(powerWords.Count);
+                foreach (int index in powerWords) w.Write(index);
             });
         }
 
@@ -150,7 +166,7 @@ namespace TypeDuel.Net
             countedWords.Remove(id);
             names.Remove(id);
             progress.Remove(id);
-            dryWords.Remove(id);
+            inventories.Remove(id);
             suggestions.Remove(id);
             if (choice == id) choice = NoChoice;
 
@@ -214,40 +230,24 @@ namespace TypeDuel.Net
             if (wordIndex < 0 || wordIndex >= wordCount) return;
             if (!countedWords.TryGetValue(sender, out var counted) || !counted.Add(wordIndex)) return;
 
-            // Protecao contra azar: depois de PityWords palavras sem poder, a proxima palavra garante um.
-            dryWords.TryGetValue(sender, out int dry);
-            bool guaranteed = dry + 1 >= Config.PityWords;
-            float chance = PowerChanceFor(sender);
+            if (!powerWords.Contains(wordIndex) || progress[sender] < wordEnds[wordIndex]) return;
+            var inventory = inventories[sender];
+            if (inventory.Count >= Config.MaxHeldPowers) return;
 
-            if (!guaranteed && rng.NextDouble() >= chance)
-            {
-                dryWords[sender] = dry + 1;
-                return;
-            }
-
-            dryWords[sender] = 0;
-            var power = (byte)rng.Next(PowerInfo.Count);
-            Debug.Log($"[TD] Power to {sender} (guaranteed={guaranteed}, chance={chance:F2})");
-            net.SendToClient(sender, MsgType.PowerGranted, w => w.Write(power));
-        }
-
-        /// <summary>Chance base, subindo ate CatchUpMaxChance conforme o jogador fica atras do lider da partida.</summary>
-        float PowerChanceFor(int id)
-        {
-            if (textLength <= 0 || !progress.TryGetValue(id, out int own)) return Config.PowerChance;
-
-            int best = own;
+            // Empates nao habilitam AUTOCOMPLETE. A elegibilidade e decidida ao receber.
+            bool behind = false;
             foreach (var pair in progress)
-                if (pair.Key != id && pair.Value > best) best = pair.Value;
-
-            float behind = Mathf.Clamp01((best - own) / (textLength * Config.CatchUpFraction));
-            return Mathf.Lerp(Config.PowerChance, Config.CatchUpMaxChance, behind);
+                if (pair.Key != sender && pair.Value > progress[sender]) behind = true;
+            var power = (byte)rng.Next(behind ? PowerInfo.Count : PowerInfo.Count - 1);
+            inventory.Enqueue(power);
+            net.SendToClient(sender, MsgType.PowerGranted, w => w.Write(power));
         }
 
         void OnProgress(int sender, int prefix)
         {
             if (state != State.Playing) return;
 
+            prefix = Mathf.Clamp(prefix, 0, textLength);
             progress[sender] = prefix;
 
             foreach (var id in players)
@@ -260,6 +260,15 @@ namespace TypeDuel.Net
         void OnUsePower(int sender, byte power)
         {
             if (state != State.Playing || power >= PowerInfo.Count) return;
+
+            if (!inventories.TryGetValue(sender, out var inventory) || inventory.Count == 0 || inventory.Peek() != power) return;
+            inventory.Dequeue();
+
+            if ((PowerType)power == PowerType.Autocomplete)
+            {
+                net.SendToClient(sender, MsgType.PowerEffect, w => { w.Write(power); w.Write(sender); });
+                return;
+            }
 
             // Alvos: todos os outros jogadores (no MVP, so existe um).
             foreach (var id in players)

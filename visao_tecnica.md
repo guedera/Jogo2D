@@ -10,8 +10,8 @@
 Jogo **versus de 2 jogadores** em rede local. Quando a partida começa, os dois veem **o mesmo texto de 100 palavras**. Vence quem digitar o texto inteiro, sem nenhum erro, primeiro.
 
 - O texto aparece **cinza** (ainda não digitado). Ao digitar, cada letra vira **branca** (certa) ou **vermelha** (errada).
-- A cada **palavra completada corretamente** há **15%** de chance de sortear um poder (3 poderes, ~33% cada).
-- O poder sorteado entra numa **fila** com o ícone na tela. **Mouse1** usa o poder que está na frente da fila.
+- No início, o host sorteia **15% das palavras** (arredondado, mínimo 1, excluindo a última) e envia os mesmos índices aos jogadores. Essas palavras aparecem **roxas** antes de serem digitadas e concedem um poder aleatório ao serem completadas corretamente, incluindo o espaço seguinte.
+- O inventário é uma **fila de no máximo 3 poderes**. **Ctrl + nome do primeiro poder** usa o primeiro da fila. Uma palavra concluída com o bolso cheio perde sua recompensa; apagar e redigitar não recupera a oportunidade.
 
 ### Poderes
 
@@ -19,6 +19,7 @@ Jogo **versus de 2 jogadores** em rede local. Quando a partida começa, os dois 
 |---|---|
 | **BOBOMB** | Uma bomba cai na palavra que o adversário está digitando e **apaga as últimas 10 letras** que ele digitou. |
 | **GLITCH** | O adversário vê o próprio texto em **leet** por **15 s**. |
+| **AUTOCOMPLETE** | Completa corretamente as próximas **10 palavras** de quem usou, a partir do primeiro trecho incorreto/incompleto. Só pode ser recebido por quem estiver atrás de outro jogador. |
 | **CHANGE** | O cursor `\|` do adversário volta **20 letras** a partir da posição atual (até o início do texto). Ele precisa avançar com as **setas**. |
 
 ---
@@ -29,14 +30,14 @@ Jogo **versus de 2 jogadores** em rede local. Quando a partida começa, os dois 
 |---|---|---|
 | 1 | Erro de digitação | **Não bloqueia.** O jogador continua digitando, e o que está errado fica vermelho até ser corrigido. Só fica branco o que está certo. |
 | 2 | Inserção no meio do texto | A letra é **inserida** e **empurra o resto** para frente. A verificação é **letra a letra**: depois de uma inserção, tudo que ficou deslocado pode virar vermelho. |
-| 3 | Inventário de poderes | **Fila (FIFO).** Poderes sorteados ficam guardados, e o mouse1 gasta o **primeiro da fila**. |
+| 3 | Inventário de poderes | **Fila (FIFO), máximo 3.** Ctrl + nome gasta o **primeiro da fila**, validado pelo host. |
 | 4 | Sorteio por palavra | **Cada palavra conta uma vez só.** Apagar e redigitar não gera novo sorteio. |
 | 5 | Idioma | **Só inglês, palavras embaralhadas, sem pontuação e sem acentos.** O projeto deve ser **escalável** para português, acentos e outros modos. |
 | 6 | O que se vê do adversário | **Só a barra de progresso.** O texto é **igual para os dois** no início de cada partida. |
 | 7 | Nº de jogadores | **2** no protótipo, com a arquitetura **escalável para N**. |
 | 8 | Entrega do protótipo | Precisa rodar em **build** (não só no editor) em **2 máquinas**. |
 | 9 | Plataformas | **2 usuários Mac + 2 Windows.** Compilar para os dois e, se possível, **jogar entre si** (Mac ↔ Windows). |
-| 10 | Visual | **Genérico e simples** no protótipo (pode ser feio). |
+| 10 | Visual | **Tema escuro** em todas as telas; texto claro, erros vermelhos e palavras de poder roxas. |
 | 11 | Cor da letra | **Letra a letra:** uma letra certa na posição certa fica **branca**, mesmo depois de um erro anterior. O **prefixo correto** é usado só para progresso e contagem de palavras. |
 | 12 | Navegação do cursor | **Só as setas ← →.** Home, End e outras teclas de navegação **não funcionam**. **Segurar a seta não repete:** cada pressão move **uma posição**. |
 
@@ -92,6 +93,8 @@ texto exibido = typed  (cada letra branca ou vermelha, mostrando a letra digitad
 ```
 - Letra `i` do `typed` é **branca** se `typed[i] == target[i]`, senão **vermelha**.
 - O cursor `|` pisca na posição `cursor`.
+- Só aparecem **a linha atual, a anterior e a próxima**, acompanhando o cursor inclusive após CHANGE e AUTOCOMPLETE. Não há fade gradual. TAB continua mostrando o texto original dentro dessa mesma janela. Cursores adversários fora dela ficam ocultos.
+- Palavras de recompensa ainda não consumidas aparecem roxas; letras digitadas continuam brancas/vermelhas para preservar a correção. Recompensas consumidas não voltam a ficar roxas após apagar.
 - Se `typed` passar do tamanho de `target`, as letras extras ficam vermelhas, até um limite (constante).
 - **Fonte monoespaçada** (TMP Font Asset), para o texto não "dançar" quando uma letra errada tem largura diferente.
 - A coloração por caractere é feita com TextMeshPro (cor por vértice, ou tags `<color>` montadas por trecho). Com ~600 caracteres a reconstrução a cada tecla é barata.
@@ -104,9 +107,9 @@ texto exibido = typed  (cada letra branca ou vermelha, mostrando a letra digitad
 
 - `PowerDefinition` (ScriptableObject): `id`, nome, ícone, e a lógica de aplicação.
 - **Adicionar um poder** = criar um novo ScriptableObject + uma classe de efeito, sem mexer no `GameManager`.
-- `PowerQueue` por jogador (FIFO). A UI mostra o primeiro ícone grande e os próximos pequenos.
-- **Sorteio no host:** quando o cliente avisa "palavra N completada", o host verifica se a palavra N já foi contada, rola 15% e, se cair, sorteia um dos poderes (probabilidade uniforme, configurável) e avisa o cliente.
-- **Uso:** mouse1 → cliente envia `UsePower` ao host → o host escolhe os **alvos** (`TargetSelector`, no protótipo "o outro jogador") → envia o efeito ao(s) cliente(s) alvo.
+- Fila por jogador (FIFO), limitada a **3** no host e no cliente. A UI mostra três espaços.
+- **Sorteio no host:** as palavras de recompensa são escolhidas antes da partida e sincronizadas na mensagem `Start`. Ao concluir uma delas, o host verifica progresso, contagem única e espaço no inventário. Sorteia uniformemente BOBOMB, GLITCH ou CHANGE; inclui AUTOCOMPLETE se o prefixo correto do jogador for menor que o de outro jogador naquele momento. Empate não habilita AUTOCOMPLETE. Não há mais sorteio de chance por palavra, proteção contra azar ou chance crescente por atraso.
+- **Uso:** Ctrl + nome → `UsePower` → host valida e remove o primeiro poder da fila. AUTOCOMPLETE é enviado ao próprio usuário; os outros atingem os demais jogadores. Um AUTOCOMPLETE já recebido pode ser usado mesmo depois de assumir a liderança.
 
 **Efeitos (executados no cliente alvo, que é dono do `TypingModel`):**
 
@@ -114,6 +117,7 @@ texto exibido = typed  (cada letra branca ou vermelha, mostrando a letra digitad
 |---|---|
 | BOBOMB | Animação de uma bomba caindo na posição da **palavra atual**, obtida pelas posições de caracteres do TMP (`TMP_TextInfo`). Ao explodir, `DeleteLast(10)` no `typed` (se houver menos de 10, apaga tudo). |
 | GLITCH | Por 15 s, a exibição passa por um **mapa de leet** aplicado **só na renderização**. O `typed` e o `target` reais não mudam. |
+| AUTOCOMPLETE | `TypingModel.Autocomplete(10)`: começa no prefixo correto, conta uma palavra parcial como a primeira, preenche até 10 palavras e seus espaços, preserva o texto posterior e coloca o cursor no fim do trecho. No fim do texto, completa só o restante e remove caracteres excedentes. Usa a atualização normal de progresso, recompensas (até 3) e vitória. |
 | CHANGE | `SetCursor(max(0, cursor - 20))`. O jogador avança com as setas. |
 
 **Regra do leet:** o mapa deve ser **1 caractere → 1 caractere** (`a→4, e→3, i→1, o→0, s→5, t→7`), para os índices continuarem alinhados com a coloração.
@@ -147,10 +151,11 @@ texto exibido = typed  (cada letra branca ou vermelha, mostrando a letra digitad
 - Contagem 3-2-1.
 - Partida: texto central, **barra de progresso do adversário**, fila de poderes.
 - Resultado: vitória/derrota e botão voltar ao menu.
+- **Esc:** volta ao menu a partir do lobby, contagem, partida, treino ou resultado; também cancela uma conexão em andamento. Usa `LeaveToMenu`, encerrando a conexão, animações e seleção de poder. No menu sem conexão, não faz nada.
 
 ### 4.5 Assets (todos placeholder no protótipo)
 
-- 3 ícones de poder, sprite de bomba, explosão (partículas).
+- 4 ícones de poder, sprite de bomba, explosão (partículas).
 - Sons: tecla, erro, poder sorteado, uso, explosão, vitória/derrota.
 - Fonte monoespaçada.
 - **Banco de palavras em inglês** (lista de palavras comuns). Se vier de fonte externa, **creditar no `README.md`**, como exige o enunciado.
@@ -198,7 +203,7 @@ A lógica de digitação (`TypingModel`) fica **sem dependência de Unity ou red
 - Mesmo texto para os dois, digitação com cores, cursor, correção e inserção.
 - Barra de progresso do adversário.
 - Detecção de vencedor e tela de resultado.
-- Os 3 poderes funcionando, com arte placeholder.
+- Os 4 poderes funcionando, com arte placeholder.
 - Builds de Windows e Mac.
 
 **Desejável:** sons simples, revanche, efeito de explosão.
@@ -247,7 +252,10 @@ A lógica de digitação (`TypingModel`) fica **sem dependência de Unity ou red
 - [ ] Inserção no meio do texto recolore o que ficou deslocado.
 - [ ] Barra de progresso do adversário atualiza.
 - [ ] Palavras só sorteiam poder uma vez.
-- [ ] Os 3 poderes funcionam nos dois sentidos (host → cliente e cliente → host).
+- [ ] BOBOMB, GLITCH e CHANGE funcionam nos dois sentidos; AUTOCOMPLETE afeta somente quem usou.
+- [ ] Inventário nunca ultrapassa 3; palavras roxas são iguais para todos e só concedem uma recompensa.
+- [ ] AUTOCOMPLETE só é recebido por quem está atrás e conclui corretamente até 10 palavras.
+- [ ] Tema escuro em todas as telas; só três linhas aparecem, inclusive com TAB e GLITCH.
 - [ ] Vencedor é o mesmo nas duas telas.
 - [ ] Teste Mac ↔ Windows nos dois sentidos.
 

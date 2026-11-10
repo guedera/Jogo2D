@@ -102,6 +102,26 @@ namespace TypeDuel
 
         public void SetCursor(int index) => Cursor = Math.Max(0, Math.Min(index, typed.Length));
 
+        /// <summary>Completa as proximas palavras a partir do primeiro caractere incorreto/incompleto.
+        /// Preserva o texto posterior ao trecho preenchido e posiciona o cursor no final desse trecho.</summary>
+        public void Autocomplete(int words)
+        {
+            if (words <= 0 || IsComplete) return;
+            int end = CorrectPrefix;
+            foreach (int wordEnd in wordEnds)
+            {
+                if (wordEnd <= CorrectPrefix) continue;
+                end = wordEnd;
+                if (--words == 0) break;
+            }
+            // Ao chegar ao fim, remove tambem caracteres extras para permitir concluir a partida.
+            int replaced = end == Target.Length ? typed.Length : Math.Min(end, typed.Length);
+            typed.Remove(0, replaced);
+            typed.Insert(0, Target.Substring(0, end));
+            Cursor = end;
+            Recompute();
+        }
+
         void Recompute()
         {
             int limit = Math.Min(typed.Length, Target.Length);

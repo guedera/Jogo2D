@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 namespace TypeDuel.UI
 {
-    /// <summary>Helpers para montar UI (uGUI + TextMeshPro) por codigo. Identidade visual: fundo branco, bordas finas cinza, botoes chapados, Open Sans.</summary>
+    /// <summary>Helpers para montar UI (uGUI + TextMeshPro) por codigo. Identidade visual: fundo escuro, bordas finas cinza, botoes chapados, Open Sans.</summary>
     public static class UiKit
     {
         // Paleta da identidade visual.
@@ -14,19 +14,19 @@ namespace TypeDuel.UI
         public static readonly Color Red = Hex("#F85F5F");
         public static readonly Color Yellow = Hex("#E5E558");
         public static readonly Color Pink = Hex("#F85FD9");
-        public static readonly Color Purple = Hex("#9800DE");
+        public static readonly Color Purple = Hex("#BC89FF");
 
-        public static readonly Color Border = Hex("#B3B3B3");
+        public static readonly Color Border = Hex("#414655");
 
         // Nomes antigos mantidos para nao quebrar quem usa (MatchController etc.).
-        public static readonly Color Background = Color.white;
-        public static readonly Color Panel = Color.white;
-        public static readonly Color PanelLight = Color.white;
+        public static readonly Color Background = Hex("#12141B");
+        public static readonly Color Panel = Hex("#1B1E28");
+        public static readonly Color PanelLight = Hex("#252A37");
         public static readonly Color Accent = Blue;
         public static readonly Color Good = Green;
         public static readonly Color Bad = Red;
-        public static readonly Color TextDim = Hex("#9A9A9A");
-        public static readonly Color TextMain = Color.black;
+        public static readonly Color TextDim = Hex("#A4ACBD");
+        public static readonly Color TextMain = Hex("#F1F3F9");
 
         /// <summary>Cor de cada jogador, na ordem: voce primeiro, depois os adversarios.</summary>
         public static readonly Color[] PlayerColors = { Blue, Purple, Red, Green, Yellow, Pink };
@@ -177,18 +177,18 @@ namespace TypeDuel.UI
             return outline;
         }
 
-        /// <summary>Caixa branca com borda fina cinza (paineis e campos).</summary>
+        /// <summary>Caixa escura com borda fina cinza (paineis e campos).</summary>
         public static Image Frame(Transform parent, string name, bool raycast = false)
         {
-            var img = Box(parent, name, Color.white, raycast);
+            var img = Box(parent, name, Panel, raycast);
             AddBorder(img);
             return img;
         }
 
-        /// <summary>Marca um botao como selecionado (cor cheia, sem borda) ou nao (branco com borda).</summary>
+        /// <summary>Marca um botao como selecionado (cor cheia, sem borda) ou nao (escuro com borda).</summary>
         public static void SetSelected(Button button, bool selected, Color selectedColor)
         {
-            button.targetGraphic.color = selected ? selectedColor : Color.white;
+            button.targetGraphic.color = selected ? selectedColor : PanelLight;
             var outline = button.GetComponent<Outline>();
             if (outline != null) outline.enabled = !selected;
         }
@@ -210,12 +210,12 @@ namespace TypeDuel.UI
             return t;
         }
 
-        /// <summary>Botao chapado com texto preto. Cor branca vira botao so com borda.</summary>
+        /// <summary>Botao escuro com borda na cor da acao.</summary>
         public static Button MakeButton(Transform parent, string name, string label, Color color, Action onClick, Vector2 size, float fontSize = 0f)
         {
-            var img = Box(parent, name, color, raycast: true);
+            var img = Box(parent, name, PanelLight, raycast: true);
             img.rectTransform.sizeDelta = size;
-            if (color.r > 0.95f && color.g > 0.95f && color.b > 0.95f) AddBorder(img);
+            AddBorder(img).effectColor = color == PanelLight ? Border : color;
 
             var button = img.gameObject.AddComponent<Button>();
             button.targetGraphic = img;
