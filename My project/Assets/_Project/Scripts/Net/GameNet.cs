@@ -109,7 +109,7 @@ namespace TypeDuel.Net
         public void Join(string ip, int port)
         {
             if (!IPAddress.TryParse(ip, out var address))
-                throw new FormatException("Invalid IP address");
+                throw new FormatException("Endereço IP inválido");
 
             pendingClient = new TcpClient(AddressFamily.InterNetwork) { NoDelay = true };
             connectTask = pendingClient.ConnectAsync(address, port);
@@ -228,7 +228,7 @@ namespace TypeDuel.Net
 
                 if (peers.Count + 1 >= Config.MaxPlayers || !CanAccept())
                 {
-                    Write(peer, Frame(MsgType.Rejected, w => w.Write("Game is full or already started")));
+                    Write(peer, Frame(MsgType.Rejected, w => w.Write("A sala está cheia ou a partida já começou")));
                     CloseTcp(tcp);
                     continue;
                 }
@@ -250,7 +250,7 @@ namespace TypeDuel.Net
 
                 if (task.IsFaulted || task.IsCanceled || !pendingClient.Connected)
                 {
-                    Fail("Could not connect to host");
+                    Fail("Não foi possível conectar ao host");
                     return;
                 }
 
@@ -261,7 +261,7 @@ namespace TypeDuel.Net
             else if (Time.realtimeSinceStartup - connectStart > Config.ConnectTimeoutSeconds)
             {
                 connectTask = null;
-                Fail("Connection timed out");
+                Fail("Tempo de conexão esgotado");
             }
         }
 
@@ -409,7 +409,7 @@ namespace TypeDuel.Net
                 }
                 else
                 {
-                    var reason = welcomed ? "Lost connection to host" : "Could not connect to host";
+                    var reason = welcomed ? "Conexão com o host perdida" : "Não foi possível conectar ao host";
                     Fail(reason);
                     return;
                 }

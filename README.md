@@ -7,9 +7,9 @@ Detalhes de design e arquitetura em [visao_tecnica.md](visao_tecnica.md).
 
 ## Como jogar (MVP)
 
-1. Um jogador clica em **HOST GAME** e passa o IP que aparece no lobby.
-2. O outro digita esse IP e clica em **JOIN GAME**.
-3. O host clica em **START MATCH**.
+1. Um jogador clica em **HOSPEDAR JOGO** e passa o IP que aparece no lobby.
+2. O outro digita esse IP e clica em **ENTRAR NO JOGO**.
+3. O host clica em **INICIAR PARTIDA**.
 4. Digite o texto. Backspace apaga, setas ← → movem o cursor (uma posição por toque). **Ctrl + nome do poder** usa o primeiro poder da fila. AUTOCOMPLETE só é recebido por quem está atrás e completa até 10 palavras de quem usou.
 
 Pressione **Esc** para abrir a confirmação de saída da partida, treino ou lobby. Escolha **Abandonar** para voltar ao menu ou **Continuar** (ou Esc novamente) para fechar a janela. A partida continua enquanto o modal está aberto. No resultado, Esc volta direto ao menu; durante uma conexão, cancela a tentativa.

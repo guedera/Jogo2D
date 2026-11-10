@@ -24,7 +24,7 @@ namespace TypeDuel
         public static string PickTextFile()
         {
 #if UNITY_EDITOR
-            string path = UnityEditor.EditorUtility.OpenFilePanelWithFilters("Choose a .txt or .md file", "", new[] { "Text files", "txt,md", "All files", "*" });
+            string path = UnityEditor.EditorUtility.OpenFilePanelWithFilters("Escolha um arquivo .txt ou .md", "", new[] { "Arquivos de texto", "txt,md", "Todos os arquivos", "*" });
             return string.IsNullOrEmpty(path) ? null : path;
 #elif UNITY_STANDALONE_WIN
             return PickWindows();
@@ -74,11 +74,11 @@ namespace TypeDuel
 
             var ofn = new OpenFileName();
             ofn.lStructSize = Marshal.SizeOf(ofn);
-            ofn.lpstrFilter = "Text files (*.txt;*.md)\0*.txt;*.md\0All files (*.*)\0*.*\0\0";
+            ofn.lpstrFilter = "Arquivos de texto (*.txt;*.md)\0*.txt;*.md\0Todos os arquivos (*.*)\0*.*\0\0";
             ofn.nFilterIndex = 1;
             ofn.lpstrFile = new string('\0', maxPath);
             ofn.nMaxFile = maxPath;
-            ofn.lpstrTitle = "Choose a .txt or .md file";
+            ofn.lpstrTitle = "Escolha um arquivo .txt ou .md";
             ofn.Flags = explorer | pathMustExist | fileMustExist | noChangeDir;
 
             if (!GetOpenFileName(ofn)) return null;

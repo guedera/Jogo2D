@@ -212,7 +212,7 @@ namespace TypeDuel
             catch (Exception e)
             {
                 net = null;
-                ui.MenuStatus.text = "Could not host: " + e.Message;
+                ui.MenuStatus.text = "Não foi possível hospedar: " + e.Message;
                 return;
             }
 
@@ -223,9 +223,9 @@ namespace TypeDuel
 
             var addresses = GameNet.LocalAddresses();
             ui.LobbyIp.text = addresses.Count > 0
-                ? "Tell the other player to join:  " + string.Join("  or  ", addresses)
-                : "No network found. Connect to Wi-Fi/LAN and restart.";
-            ui.LobbyInfo.text = "Port " + Config.Port + "  |  firewall must allow TypeDuel";
+                ? "Passe este IP para o outro jogador:  " + string.Join("  ou  ", addresses)
+                : "Nenhuma rede encontrada. Conecte-se ao Wi-Fi ou cabo e tente de novo.";
+            ui.LobbyInfo.text = "Porta " + Config.Port + "  |  o firewall precisa liberar o TypeDuel";
             ui.StartButton.gameObject.SetActive(true);
 
             EnterLobby();
@@ -244,7 +244,7 @@ namespace TypeDuel
             catch (Exception e)
             {
                 net = null;
-                ui.MenuStatus.text = e.Message + " (use the host's IPv4, e.g. 192.168.0.12)";
+                ui.MenuStatus.text = e.Message + " (use o IPv4 do host, ex.: 192.168.0.12)";
                 return;
             }
 
@@ -253,14 +253,14 @@ namespace TypeDuel
             net.ClientMessage += OnServerMessage;
             net.Connected += () =>
             {
-                ui.LobbyIp.text = "Connected to " + address.Trim();
-                ui.LobbyInfo.text = "Waiting for the host to start the match...";
+                ui.LobbyIp.text = "Conectado a " + address.Trim();
+                ui.LobbyInfo.text = "Aguardando o host iniciar a partida...";
                 ui.StartButton.gameObject.SetActive(false);
                 SendName();
                 EnterLobby();
             };
             net.Disconnected += reason => LeaveToMenu(reason);
-            ui.MenuStatus.text = "Connecting...";
+            ui.MenuStatus.text = "Conectando...";
             ui.MenuStatus.color = UiKit.TextDim;
         }
 
@@ -283,7 +283,7 @@ namespace TypeDuel
             State = MatchState.Lobby;
             ui.MenuStatus.text = "";
             ui.MenuStatus.color = UiKit.Bad;
-            ui.LobbyPlayers.text = "Players: " + lobbyPlayers + "/" + Config.MaxPlayers;
+            ui.LobbyPlayers.text = "Jogadores: " + lobbyPlayers + "/" + Config.MaxPlayers;
             ui.SetLobbyMode(false);
             lobbySelected = HostLogic.NoChoice;
             suggestionOwners.Clear();
@@ -308,9 +308,9 @@ namespace TypeDuel
             ui.SetSourceSelection(lobbySelected == HostLogic.GenerateChoice, false);
 
             string text;
-            if (lobbySelected == HostLogic.GenerateChoice) text = "Text: random words";
-            else if (selectedIndex >= 0) text = "Text: " + suggestionLabels[selectedIndex];
-            else text = host != null ? "Choose GENERATE or a suggested text to start" : "Waiting for the host to choose the text...";
+            if (lobbySelected == HostLogic.GenerateChoice) text = "Texto: palavras aleatórias";
+            else if (selectedIndex >= 0) text = "Texto: " + suggestionLabels[selectedIndex];
+            else text = host != null ? "Escolha Gerar ou um texto sugerido para começar" : "Aguardando o host escolher o texto...";
             ui.SetLobbyChoice(text, UiKit.TextDim);
         }
 
@@ -337,9 +337,9 @@ namespace TypeDuel
             ui.SetSourceSelection(soloChoice == HostLogic.GenerateChoice, soloChoice == UploadChoice);
 
             string text;
-            if (soloChoice == HostLogic.GenerateChoice) text = "Text: random words";
-            else if (soloChoice == UploadChoice) text = "Text: " + soloTitle + "  (" + soloWords + " words)";
-            else text = "Choose GENERATE or UPLOAD TEXT to start";
+            if (soloChoice == HostLogic.GenerateChoice) text = "Texto: palavras aleatórias";
+            else if (soloChoice == UploadChoice) text = "Texto: " + soloTitle + "  (" + soloWords + " palavras)";
+            else text = "Escolha Gerar ou Enviar para começar";
             ui.SetLobbyChoice(text, UiKit.TextDim);
         }
 
@@ -370,7 +370,7 @@ namespace TypeDuel
 
             if (!FilePicker.IsSupported)
             {
-                ui.SetLobbyChoice("File picker is not supported on this platform", UiKit.Bad);
+                ui.SetLobbyChoice("Esta plataforma não permite escolher arquivos", UiKit.Bad);
                 return;
             }
 
@@ -380,7 +380,7 @@ namespace TypeDuel
             if (!TryLoadText(path, out string title, out string cleaned, out int words))
             {
                 // Texto invalido: avisa e volta a escolha (no treino, a escolha anterior e descartada).
-                ui.SetLobbyChoice("Invalid text: it needs at least " + TextCleaner.MinWords + " words after cleaning", UiKit.Bad);
+                ui.SetLobbyChoice("Texto inválido: são necessárias pelo menos " + TextCleaner.MinWords + " palavras depois da limpeza", UiKit.Bad);
                 if (soloLobby)
                 {
                     soloChoice = HostLogic.NoChoice;
@@ -462,7 +462,7 @@ namespace TypeDuel
                 case MsgType.Lobby:
                 {
                     lobbyPlayers = r.ReadInt32();
-                    ui.LobbyPlayers.text = "Players: " + lobbyPlayers + "/" + Config.MaxPlayers;
+                    ui.LobbyPlayers.text = "Jogadores: " + lobbyPlayers + "/" + Config.MaxPlayers;
                     if (host == null && State == MatchState.Over) { /* aguardando revanche */ }
                     break;
                 }
@@ -484,9 +484,9 @@ namespace TypeDuel
                         string title = r.ReadString();
                         int words = r.ReadInt32();
 
-                        string who = ownerName.Length > 0 ? ownerName : (owner == 0 ? "Host" : "Player " + owner);
+                        string who = ownerName.Length > 0 ? ownerName : (owner == 0 ? "Host" : "Jogador " + owner);
                         suggestionOwners.Add(owner);
-                        suggestionLabels.Add(who + "  -  " + title + "  (" + words + " words)");
+                        suggestionLabels.Add(who + "  -  " + title + "  (" + words + " palavras)");
                     }
                     RefreshLobbyChoice();
                     break;
@@ -694,7 +694,7 @@ namespace TypeDuel
 
             bool won = winnerId == net.LocalId;
             LastResult = won ? "win" : "lose";
-            string sub = reason == 1 ? "The other player left the match" : (won ? "You finished the text first" : "The other player finished first");
+            string sub = reason == 1 ? "O outro jogador saiu da partida" : (won ? "Você terminou o texto primeiro" : "O outro jogador terminou primeiro");
             ui.ShowResult(won, sub, host != null);
             Debug.Log($"[TD] Match over. Winner={winnerId} local={net.LocalId} result={LastResult}");
         }
@@ -852,7 +852,7 @@ namespace TypeDuel
             ui.SetSlots(queue);
             net.SendToServer(MsgType.UsePower, w => w.Write((byte)power));
             if (power != PowerType.Autocomplete) ui.PlayPowerFeedback(power);
-            ui.ShowToast("Used " + PowerInfo.Name(power) + "!", PowerInfo.Color(power));
+            ui.ShowToast("Você usou " + PowerInfo.Name(power) + "!", PowerInfo.Color(power));
             Debug.Log($"[TD] Used power {power}");
         }
 
@@ -868,7 +868,7 @@ namespace TypeDuel
         {
             if (queue.Count == 0)
             {
-                ui.ShowToast("No powers yet - finish purple words to earn them", UiKit.TextDim);
+                ui.ShowToast("Nenhum efeito ainda: complete palavras roxas para ganhar", UiKit.TextDim);
                 return;
             }
 
@@ -900,7 +900,7 @@ namespace TypeDuel
                 }
                 else
                 {
-                    ui.ShowToast("Next power is " + PowerInfo.Name(queue[0]), UiKit.TextDim);
+                    ui.ShowToast("O próximo efeito é " + PowerInfo.Name(queue[0]), UiKit.TextDim);
                     castText = "";
                     ui.Prompt.SetText(castText);
                 }
@@ -919,8 +919,8 @@ namespace TypeDuel
         // Enter fecha o campo; se o nome nao for um poder valido, avisa o que foi digitado.
         void SubmitCast()
         {
-            if (castText.Length == 0) ui.ShowToast("Cast cancelled", UiKit.TextDim);
-            else ui.ShowToast("Unknown power: " + castText, UiKit.Bad);
+            if (castText.Length == 0) ui.ShowToast("Efeito cancelado", UiKit.TextDim);
+            else ui.ShowToast("Efeito desconhecido: " + castText, UiKit.Bad);
             StopCasting();
         }
 
@@ -951,13 +951,13 @@ namespace TypeDuel
                     // A bomba cai na palavra onde o jogador esta digitando agora.
                     var target = ui.Typing.CharWorldPosition(Mathf.Max(0, model.TypedLength - 1));
                     StartCoroutine(BombRoutine(target));
-                    ui.ShowToast("BOBOMB incoming!", PowerInfo.Color(PowerType.Bobomb));
+                    ui.ShowToast("BOBOMB a caminho!", PowerInfo.Color(PowerType.Bobomb));
                     break;
                 }
                 case PowerType.Glitch:
                 {
                     glitchUntil = Time.time + Config.GlitchSeconds;
-                    ui.ShowToast("GLITCH! Your text is scrambled", PowerInfo.Color(PowerType.Glitch));
+                    ui.ShowToast("GLITCH! Seu texto foi embaralhado", PowerInfo.Color(PowerType.Glitch));
                     ui.PlayPowerFeedback(power);
                     Refresh();
                     break;
@@ -966,7 +966,7 @@ namespace TypeDuel
                 {
                     model.SetCursor(Mathf.Max(0, model.Cursor - Config.ChangeRewindChars));
                     lastInputTime = Time.time;
-                    ui.ShowToast("CHANGE! Cursor moved - use the arrow keys", PowerInfo.Color(PowerType.Change));
+                    ui.ShowToast("CHANGE! Seu cursor voltou - use as setas", PowerInfo.Color(PowerType.Change));
                     ui.PlayPowerFeedback(power);
                     Refresh();
                     break;
