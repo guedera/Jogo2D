@@ -19,7 +19,7 @@ Jogo **versus de 2 jogadores** em rede local. Quando a partida começa, os dois 
 |---|---|
 | **BOBOMB** | Uma bomba cai na palavra que o adversário está digitando e **apaga as últimas 10 letras** que ele digitou. |
 | **GLITCH** | O adversário vê o próprio texto em **leet** por **15 s**. |
-| **CHANGE** | O cursor `\|` do adversário é jogado para um **ponto aleatório** do texto digitado. Ele precisa voltar ao final com as **setas**. |
+| **CHANGE** | O cursor `\|` do adversário volta **20 letras** a partir da posição atual (até o início do texto). Ele precisa avançar com as **setas**. |
 
 ---
 
@@ -114,7 +114,7 @@ texto exibido = typed  (cada letra branca ou vermelha, mostrando a letra digitad
 |---|---|
 | BOBOMB | Animação de uma bomba caindo na posição da **palavra atual**, obtida pelas posições de caracteres do TMP (`TMP_TextInfo`). Ao explodir, `DeleteLast(10)` no `typed` (se houver menos de 10, apaga tudo). |
 | GLITCH | Por 15 s, a exibição passa por um **mapa de leet** aplicado **só na renderização**. O `typed` e o `target` reais não mudam. |
-| CHANGE | `SetCursor(random)` com um valor em `[0, typed.Length)`. O jogador volta com as setas. |
+| CHANGE | `SetCursor(max(0, cursor - 20))`. O jogador avança com as setas. |
 
 **Regra do leet:** o mapa deve ser **1 caractere → 1 caractere** (`a→4, e→3, i→1, o→0, s→5, t→7`), para os índices continuarem alinhados com a coloração.
 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using TMPro;
@@ -7,53 +8,112 @@ using UnityEngine.UI;
 namespace TypeDuel.UI
 {
     /// <summary>
-    /// Desenha o texto da partida: o que foi digitado (branco = certo, vermelho = errado) seguido do resto do alvo em cinza.
-    /// Largura fixa por caractere (mspace) para o texto nao "dancar" quando uma letra errada tem largura diferente.
+    /// Desenha o texto da partida: o que foi digitado (preto = certo, vermelho = errado) seguido do resto do alvo em cinza.
+    /// A linha onde o jogador esta digitando fica sempre parada no centro vertical (sobre uma faixa cinza clara) e o resto do
+    /// texto rola em volta dela; as demais linhas ficam mais apagadas quanto mais longe da linha atual.
     /// </summary>
     public sealed class TypingView
     {
-        const string MonoWidth = "0.64em";
-        const float Pad = 36f;
+        // Largura fixa por caractere (mspace) para o texto nao "dancar" quando uma letra errada tem largura diferente.
+        // Trocar para false deixa o texto proporcional (Open Sans pura), ao custo de o texto se mexer em erros.
+        const bool FixedWidth = true;
+        const string MonoWidth = "0.6em";
 
-        static readonly string Gray = UiKit.HexRgb(new Color(0.55f, 0.57f, 0.62f));
-        static readonly string White = "FFFFFF";
-        static readonly string Red = UiKit.HexRgb(UiKit.Bad);
+        const float FontSize = 40f;
+        const float LineSpacing = 4f;
+        const float PadY = 20f;
+        const float ScrollSpeed = 16f;      // velocidade da rolagem suave (maior = mais rapido)
+        const float BandMargin = 22f;       // quanto a faixa da linha atual passa do texto nas laterais
+        const float BandPadding = 10f;      // folga vertical da faixa
+        const float CursorWidth = 3f;
+        const float CapWidth = 12f;
+        const float CapHeight = 3f;
 
-        // Cursor vermelho apagado: mostra ate onde cada adversario acertou no texto.
-        static readonly Color OpponentColor = new Color(UiKit.Bad.r, UiKit.Bad.g, UiKit.Bad.b, 0.35f);
+        // Opacidade por distancia (em linhas) ate a linha atual.
+        static readonly float[] LineAlpha = { 1f, 0.8f, 0.6f, 0.42f, 0.28f, 0.16f, 0.07f };
 
-        readonly StringBuilder sb = new StringBuilder(2048);
-        readonly Dictionary<int, Image> opponentCursors = new Dictionary<int, Image>();
+        const string Gray = "7F7F7F";
+        const string Black = "000000";
+        static readonly string Red = UiKit.HexRgb(UiKit.Red);
+
+        readonly StringBuilder sb = new StringBuilder(4096);
+        readonly Dictionary<int, CursorGlyph> opponentCursors = new Dictionary<int, CursorGlyph>();
+        readonly Dictionary<int, Color> opponentColors = new Dictionary<int, Color>();
         readonly Dictionary<int, int> opponentPrefix = new Dictionary<int, int>();
+        readonly CursorGlyph ownCursor;
+        readonly Image band;
+        readonly float padLeft;
+        readonly float padRight;
+
         public readonly TextMeshProUGUI Text;
         public readonly Image Cursor;
-        float scroll;
 
-        public TypingView(Transform parent)
+        int[] lineOf = new int[0];  // linha (no layout atual) de cada caractere, usada para apagar por distancia
+        float scroll;               // posicao vertical atual do texto
+        float scrollTarget;         // posicao que poe a linha do cursor no centro
+        bool snapNext = true;
+        int lastTickFrame = -100;
+
+        public TypingView(Transform parent, float padLeft = 30f, float padRight = 380f)
         {
-            // Mascara: o texto que passar do painel e cortado, e o FollowCursor sobe a parte de cima.
+            this.padLeft = padLeft;
+            this.padRight = padRight;
+
+            // Mascara: o texto que passar da area e cortado.
             parent.gameObject.AddComponent<RectMask2D>();
 
-            Text = UiKit.Label(parent, "TypingText", "", 40f, Color.white, TextAlignmentOptions.TopLeft);
+            // Faixa da linha atual (atras do texto), fixa no centro da area.
+            band = UiKit.Box(parent, "LineBand", UiKit.Hex("#F0F0F0"));
+            var br = band.rectTransform;
+            br.anchorMin = new Vector2(0f, 0.5f);
+            br.anchorMax = new Vector2(1f, 0.5f);
+            br.pivot = new Vector2(0.5f, 0.5f);
+            br.anchoredPosition = new Vector2((padLeft - padRight) * 0.5f, 0f);
+            br.sizeDelta = new Vector2(-(padLeft - BandMargin + padRight - BandMargin), 60f);
+            band.gameObject.SetActive(false);
+
+            Text = UiKit.Label(parent, "TypingText", "", FontSize, Color.white, TextAlignmentOptions.TopLeft);
             Text.textWrappingMode = TextWrappingModes.Normal;
             Text.richText = true;
-            Text.lineSpacing = 12f;
-            UiKit.Stretch(Text.rectTransform, Pad);
+            Text.lineSpacing = LineSpacing;
+            UiKit.Stretch(Text.rectTransform);
 
-            Cursor = UiKit.Box(Text.transform, "Cursor", UiKit.Accent);
-            Cursor.rectTransform.pivot = new Vector2(0.5f, 0f);
-            Cursor.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            Cursor.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            Cursor.gameObject.SetActive(false);
+            ownCursor = new CursorGlyph(Text.transform, "Cursor", UiKit.PlayerColor(0));
+            Cursor = ownCursor.Bar;
+
+            ApplyScroll();
+        }
+
+        public void SetOwnColor(Color color) => ownCursor.SetColor(color);
+
+        /// <summary>Cor do cursor do adversario `id` (a mesma do icone dele na lista de jogadores).</summary>
+        public void SetOpponentColor(int id, Color color)
+        {
+            opponentColors[id] = color;
+            if (opponentCursors.TryGetValue(id, out var glyph)) glyph.SetColor(color);
         }
 
         public void Clear()
         {
             Text.text = "";
-            Cursor.gameObject.SetActive(false);
-            foreach (var image in opponentCursors.Values) image.gameObject.SetActive(false);
+            ownCursor.Hide();
+            band.gameObject.SetActive(false);
+            foreach (var glyph in opponentCursors.Values) glyph.Hide();
             opponentPrefix.Clear();
-            scroll = 0f;
+            lineOf = new int[0];
+            scroll = scrollTarget = 0f;
+            snapNext = true;
+            ApplyScroll();
+        }
+
+        /// <summary>Chamado todo frame (GameUI.Tick): faz a rolagem deslizar ate a linha do cursor.</summary>
+        public void Tick(float dt)
+        {
+            lastTickFrame = Time.frameCount;
+            if (Mathf.Approximately(scroll, scrollTarget)) return;
+
+            scroll = Mathf.Lerp(scroll, scrollTarget, 1f - Mathf.Exp(-ScrollSpeed * dt));
+            if (Mathf.Abs(scroll - scrollTarget) < 0.25f) scroll = scrollTarget;
             ApplyScroll();
         }
 
@@ -64,15 +124,51 @@ namespace TypeDuel.UI
             PlaceOpponentCursor(id);
         }
 
-        /// <summary>Com peek, mostra so o texto original (branco), sem o que foi digitado nem o cursor.</summary>
+        /// <summary>Com peek, mostra so o texto original (preto, sem apagar), sem o que foi digitado nem o cursor.</summary>
         public void Render(TypingModel m, bool glitch, bool peek)
         {
-            sb.Clear();
-            sb.Append("<mspace=").Append(MonoWidth).Append('>');
-
             int typedLen = peek ? 0 : m.TypedLength;
-            int total = System.Math.Max(typedLen, m.Target.Length);
-            int run = -1; // 0 cinza, 1 branco, 2 vermelho
+            int total = Math.Max(typedLen, m.Target.Length);
+
+            BuildString(m, glitch, peek, typedLen, total);
+            Text.text = sb.ToString();
+            Text.ForceMeshUpdate();
+
+            // As linhas so mudam quando o texto e trocado; nesse caso refaz uma vez com o apagado certo.
+            if (!peek && RefreshLines())
+            {
+                BuildString(m, glitch, peek, typedLen, total);
+                Text.text = sb.ToString();
+                Text.ForceMeshUpdate();
+            }
+
+            if (peek)
+            {
+                ownCursor.Hide();
+                band.gameObject.SetActive(false);
+            }
+            else
+            {
+                FollowCursor(m.Cursor);
+                PlaceCursor(m.Cursor);
+            }
+
+            foreach (var id in opponentPrefix.Keys) PlaceOpponentCursor(id);
+        }
+
+        int LineOf(int index)
+        {
+            if (lineOf.Length == 0) return 0;
+            return lineOf[Mathf.Clamp(index, 0, lineOf.Length - 1)];
+        }
+
+        void BuildString(TypingModel m, bool glitch, bool peek, int typedLen, int total)
+        {
+            sb.Clear();
+            if (FixedWidth) sb.Append("<mspace=").Append(MonoWidth).Append('>');
+
+            int cursorLine = peek ? 0 : LineOf(m.Cursor);
+            int run = -1; // estado * 16 + faixa de opacidade; estado: 0 cinza, 1 preto, 2 vermelho
 
             for (int i = 0; i < total; i++)
             {
@@ -89,11 +185,13 @@ namespace TypeDuel.UI
                     state = peek ? 1 : 0;
                 }
 
-                if (state != run)
+                int fade = peek ? 0 : Math.Min(Math.Abs(LineOf(i) - cursorLine), LineAlpha.Length - 1);
+                int key = state * 16 + fade;
+                if (key != run)
                 {
                     CloseRun(run);
-                    OpenRun(state);
-                    run = state;
+                    OpenRun(key);
+                    run = key;
                 }
 
                 if (glitch && !peek) ch = LeetMap.Apply(ch);
@@ -102,54 +200,86 @@ namespace TypeDuel.UI
             }
 
             CloseRun(run);
-            sb.Append("</mspace>");
-
-            Text.text = sb.ToString();
-            Text.ForceMeshUpdate();
-            if (!peek) FollowCursor(m.Cursor);
-            if (peek) Cursor.gameObject.SetActive(false);
-            else PlaceCursor(m.Cursor);
-
-            foreach (var id in opponentPrefix.Keys) PlaceOpponentCursor(id);
+            if (FixedWidth) sb.Append("</mspace>");
         }
 
-        void OpenRun(int state)
+        void OpenRun(int key)
         {
-            if (state == 0) sb.Append("<color=#").Append(Gray).Append('>');
-            else if (state == 1) sb.Append("<color=#").Append(White).Append('>');
-            else sb.Append("<color=#").Append(Red).Append("><mark=#").Append(Red).Append("40>");
+            int state = key / 16;
+            float alpha = LineAlpha[key % 16];
+            string a = ((int)(alpha * 255f)).ToString("X2");
+
+            sb.Append("<color=#").Append(state == 0 ? Gray : state == 1 ? Black : Red).Append(a).Append('>');
+            if (state == 2) sb.Append("<mark=#").Append(Red).Append(((int)(alpha * 64f)).ToString("X2")).Append('>');
         }
 
-        void CloseRun(int state)
+        void CloseRun(int key)
         {
-            if (state < 0) return;
-            if (state == 2) sb.Append("</mark>");
+            if (key < 0) return;
+            if (key / 16 == 2) sb.Append("</mark>");
             sb.Append("</color>");
         }
 
-        /// <summary>Rola o texto para a linha do cursor ficar no meio do painel; as linhas ja escritas saem por cima.</summary>
+        /// <summary>Guarda a linha de cada caractere; devolve true se o layout mudou desde a ultima vez.</summary>
+        bool RefreshLines()
+        {
+            var info = Text.textInfo;
+            int count = info.characterCount;
+            bool changed = false;
+
+            if (lineOf.Length != count)
+            {
+                lineOf = new int[count];
+                changed = true;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                int line = info.characterInfo[i].lineNumber;
+                if (lineOf[i] != line)
+                {
+                    lineOf[i] = line;
+                    changed = true;
+                }
+            }
+
+            return changed;
+        }
+
+        /// <summary>Poe o centro da linha do cursor no centro vertical da area; o resto do texto se move em volta.</summary>
         void FollowCursor(int cursor)
         {
             var info = Text.textInfo;
             int count = info.characterCount;
-            if (count == 0 || info.lineCount == 0) return;
+            if (count == 0 || info.lineCount == 0)
+            {
+                band.gameObject.SetActive(false);
+                return;
+            }
 
-            // Distancias medidas a partir do topo da primeira linha (y para baixo).
-            int line = info.characterInfo[Mathf.Min(cursor, count - 1)].lineNumber;
-            float top = info.lineInfo[0].ascender - info.lineInfo[line].ascender;
-            float bottom = info.lineInfo[0].ascender - info.lineInfo[line].descender;
-            float middle = Text.rectTransform.rect.height * 0.5f;
+            int lineNumber = info.characterInfo[Mathf.Clamp(cursor, 0, count - 1)].lineNumber;
+            var line = info.lineInfo[lineNumber];
 
-            if (bottom > scroll + middle) scroll = bottom - middle;
-            else if (top < scroll) scroll = top;
-            scroll = Mathf.Max(0f, scroll);
+            // As medidas do TMP sao relativas ao pivo (centro) do texto: levar esse centro para -centroDaLinha deixa a linha em y = 0.
+            scrollTarget = -(line.ascender + line.descender) * 0.5f;
+
+            // Sem Tick rodando (ou logo apos Clear) nao ha o que animar: vai direto.
+            bool ticking = Time.frameCount - lastTickFrame <= 2;
+            if (snapNext || !ticking)
+            {
+                scroll = scrollTarget;
+                snapNext = false;
+            }
             ApplyScroll();
+
+            band.gameObject.SetActive(true);
+            band.rectTransform.sizeDelta = new Vector2(band.rectTransform.sizeDelta.x, line.ascender - line.descender + BandPadding * 2f);
         }
 
         void ApplyScroll()
         {
-            Text.rectTransform.offsetMin = new Vector2(Pad, Pad + scroll);
-            Text.rectTransform.offsetMax = new Vector2(-Pad, -Pad + scroll);
+            Text.rectTransform.offsetMin = new Vector2(padLeft, PadY + scroll);
+            Text.rectTransform.offsetMax = new Vector2(-padRight, -PadY + scroll);
         }
 
         /// <summary>Posicao (x, base e topo da linha) de um caractere; depois do ultimo, fica no fim dele. Falso se nao ha texto.</summary>
@@ -171,37 +301,31 @@ namespace TypeDuel.UI
         {
             if (!CursorMetrics(index, out float x, out float bottom, out float top))
             {
-                Cursor.gameObject.SetActive(false);
+                ownCursor.Hide();
                 return;
             }
 
-            Cursor.gameObject.SetActive(true);
-            Cursor.rectTransform.sizeDelta = new Vector2(4f, top - bottom);
-            Cursor.rectTransform.localPosition = new Vector3(x, bottom, 0f);
+            ownCursor.Show(x, bottom, top - bottom);
         }
 
         void PlaceOpponentCursor(int id)
         {
             if (!opponentPrefix.TryGetValue(id, out int index)) return;
 
-            if (!opponentCursors.TryGetValue(id, out var image))
+            if (!opponentCursors.TryGetValue(id, out var glyph))
             {
-                image = UiKit.Box(Text.transform, "OpponentCursor" + id, OpponentColor);
-                image.rectTransform.pivot = new Vector2(0.5f, 0f);
-                image.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-                image.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-                opponentCursors[id] = image;
+                var color = opponentColors.TryGetValue(id, out var c) ? c : UiKit.Red;
+                glyph = new CursorGlyph(Text.transform, "OpponentCursor" + id, color);
+                opponentCursors[id] = glyph;
             }
 
             if (!CursorMetrics(index, out float x, out float bottom, out float top))
             {
-                image.gameObject.SetActive(false);
+                glyph.Hide();
                 return;
             }
 
-            image.gameObject.SetActive(true);
-            image.rectTransform.sizeDelta = new Vector2(4f, top - bottom);
-            image.rectTransform.localPosition = new Vector3(x, bottom, 0f);
+            glyph.Show(x, bottom, top - bottom);
         }
 
         /// <summary>Posicao (mundo/tela) do meio do caractere, usada para a bomba cair na palavra atual.</summary>
@@ -215,6 +339,55 @@ namespace TypeDuel.UI
             var ci = info.characterInfo[index];
             var local = new Vector3((ci.origin + ci.xAdvance) * 0.5f, (ci.ascender + ci.descender) * 0.5f, 0f);
             return Text.transform.TransformPoint(local);
+        }
+
+        /// <summary>Cursor em "I": barra fina com uma tampa curta em cima e embaixo, na cor do jogador.</summary>
+        sealed class CursorGlyph
+        {
+            public readonly Image Bar;
+            readonly Image top;
+            readonly Image bottom;
+
+            public CursorGlyph(Transform parent, string name, Color color)
+            {
+                Bar = UiKit.Box(parent, name, color);
+                var r = Bar.rectTransform;
+                r.pivot = new Vector2(0.5f, 0f);
+                r.anchorMin = new Vector2(0.5f, 0.5f);
+                r.anchorMax = new Vector2(0.5f, 0.5f);
+
+                top = Cap(Bar.transform, "Top", color, 1f);
+                bottom = Cap(Bar.transform, "Bottom", color, 0f);
+                Bar.gameObject.SetActive(false);
+            }
+
+            static Image Cap(Transform parent, string name, Color color, float y)
+            {
+                var img = UiKit.Box(parent, name, color);
+                var r = img.rectTransform;
+                r.anchorMin = new Vector2(0.5f, y);
+                r.anchorMax = new Vector2(0.5f, y);
+                r.pivot = new Vector2(0.5f, y);
+                r.anchoredPosition = Vector2.zero;
+                r.sizeDelta = new Vector2(CapWidth, CapHeight);
+                return img;
+            }
+
+            public void SetColor(Color color)
+            {
+                Bar.color = color;
+                top.color = color;
+                bottom.color = color;
+            }
+
+            public void Show(float x, float baseY, float height)
+            {
+                Bar.gameObject.SetActive(true);
+                Bar.rectTransform.sizeDelta = new Vector2(CursorWidth, height);
+                Bar.rectTransform.localPosition = new Vector3(x, baseY, 0f);
+            }
+
+            public void Hide() => Bar.gameObject.SetActive(false);
         }
     }
 }

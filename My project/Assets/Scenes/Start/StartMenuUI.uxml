@@ -1,0 +1,23 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI%20Toolkit/styles.uss?fileID=7433441132597879392&amp;guid=91d911cbe49d0cc42aedab25cb2788a2&amp;type=3#styles"/>
+    <ui:VisualElement name="VisualElement" style="flex-grow: 1; width: auto; height: auto; background-color: rgb(245, 244, 236);">
+        <ui:VisualElement name="VisualElement" style="flex-grow: 1; width: auto; height: auto; padding-top: 5%; padding-bottom: 5%; padding-right: 20%; padding-left: 24%; justify-content: center;">
+            <ui:VisualElement name="Titles" style="flex-grow: 0;">
+                <ui:Label text="TYPEDUEL" name="MainTitle" class="title" style="margin-left: 0; margin-top: 0; margin-right: 0; margin-bottom: 0; height: 62px; justify-content: center; -unity-text-align: middle-center;"/>
+                <ui:Label text="Gotta Type Fast" name="Paragraph" class="paragraph" style="margin-left: 0; margin-top: 0; margin-right: 0; margin-bottom: 10px;"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="inputs" style="flex-grow: 0;">
+                <ui:TextField label="Name:" placeholder-text="(optional)" name="name" class="defaultInput" style="flex-grow: 1; width: 100%; margin-top: 0; margin-right: 0; margin-left: 0;"/>
+                <ui:TextField label="Host:" placeholder-text="172.0.0.1" name="host" class="defaultInput" style="flex-grow: 1; width: 100%; margin-top: 0; margin-right: 0; margin-left: 0;"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="sessionButtons" style="flex-grow: 0; flex-direction: column; flex-shrink: 0; margin-bottom: 10px;">
+                <ui:VisualElement name="Horizontal" style="flex-grow: 1; flex-direction: row; margin-bottom: 10px;">
+                    <ui:Button text="HOST GAME" class="defaultButton" style="background-color: rgb(33, 219, 64); border-top-width: 0; border-right-width: 0; border-bottom-width: 0; border-left-width: 0; margin-top: 0; margin-right: 10px; margin-bottom: 0; margin-left: 0; height: 45px; min-height: 45px; max-height: 45px;"/>
+                    <ui:Button text="JOIN GAME" class="defaultButton" style="background-color: rgb(229, 229, 88); border-top-width: 0; border-right-width: 0; border-bottom-width: 0; border-left-width: 0; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; height: 45px; min-height: 45px; max-height: 45px;"/>
+                </ui:VisualElement>
+                <ui:Button text="TRAINING" class="defaultButton" style="background-color: rgb(95, 115, 248); border-top-width: 0; border-right-width: 0; border-bottom-width: 0; border-left-width: 0; margin-top: 0; margin-right: 0; margin-bottom: 10px; margin-left: 0; height: 45px; min-width: initial; min-height: initial; max-height: 45px; flex-grow: 0;"/>
+            </ui:VisualElement>
+            <ui:Label text="Both Players on the same WIFI/LAN. Type the Host&apos;s IP above CTRL/CMD + V" name="Paragraph" style="margin-left: 0; margin-top: 0; margin-right: 0; margin-bottom: 10px; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/OpenSans-SemiBold.ttf?fileID=12800000&amp;guid=3a1b071bca32b574d8cc51d384c9bf9f&amp;type=3#OpenSans-SemiBold&quot;); -unity-text-align: upper-center; position: absolute; bottom: 5px; justify-content: center; align-self: center;"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

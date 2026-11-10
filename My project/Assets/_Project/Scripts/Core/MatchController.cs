@@ -892,9 +892,7 @@ namespace TypeDuel
                 }
                 case PowerType.Change:
                 {
-                    int len = model.TypedLength;
-                    if (len > 3) model.SetCursor(UnityEngine.Random.Range(0, len - 2));
-                    else model.SetCursor(0);
+                    model.SetCursor(Mathf.Max(0, model.Cursor - Config.ChangeRewindChars));
                     lastInputTime = Time.time;
                     ui.ShowToast("CHANGE! Cursor moved - use the arrow keys", PowerInfo.Color(PowerType.Change));
                     ui.FlashScreen(0.2f);
