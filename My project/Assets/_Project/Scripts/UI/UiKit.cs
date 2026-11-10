@@ -243,10 +243,10 @@ namespace TypeDuel.UI
         }
     }
 
-    /// <summary>Linha da lista de jogadores da partida: icone na cor do jogador, nome e porcentagem de progresso.</summary>
+    /// <summary>Linha da lista de jogadores da partida: icone na cor do jogador, nome e barra de progresso.</summary>
     public sealed class PlayerRow
     {
-        readonly TextMeshProUGUI percent;
+        readonly RectTransform fill;
         public readonly RectTransform Root;
 
         public PlayerRow(Transform parent, string name, string label, Color color, float width, float height)
@@ -257,21 +257,23 @@ namespace TypeDuel.UI
             var icon = UiKit.CaretIcon(Root, "Icon", color, new Vector2(22f, 34f));
             UiKit.Place(icon.rectTransform, new Vector2(0f, 0.5f), new Vector2(11f, 0f), new Vector2(22f, 34f));
 
-            var title = UiKit.Label(Root, "Name", label, 32f, UiKit.TextMain, TextAlignmentOptions.MidlineLeft);
+            var title = UiKit.Label(Root, "Name", label, 25f, UiKit.TextMain, TextAlignmentOptions.MidlineLeft);
             title.overflowMode = TextOverflowModes.Ellipsis;
-            title.rectTransform.anchorMin = Vector2.zero;
-            title.rectTransform.anchorMax = Vector2.one;
-            title.rectTransform.offsetMin = new Vector2(46f, 0f);
-            title.rectTransform.offsetMax = new Vector2(-96f, 0f);
+            UiKit.Place(title.rectTransform, new Vector2(0f, 1f),
+                new Vector2(46f + (width - 46f) * 0.5f, -14f), new Vector2(width - 46f, 28f));
 
-            percent = UiKit.Label(Root, "Percent", "0%", 32f, UiKit.TextDim, TextAlignmentOptions.MidlineRight);
-            UiKit.Place(percent.rectTransform, new Vector2(1f, 0.5f), new Vector2(-45f, 0f), new Vector2(90f, height));
+            var track = UiKit.Box(Root, "Track", UiKit.PanelLight);
+            UiKit.Place(track.rectTransform, new Vector2(0f, 0f),
+                new Vector2(46f + (width - 46f) * 0.5f, 15f), new Vector2(width - 46f, 12f));
+            fill = UiKit.Box(track.transform, "Fill", color).rectTransform;
+            UiKit.Stretch(fill);
+            Set(0f);
         }
 
         public void Set(float value)
         {
             value = Mathf.Clamp01(value);
-            percent.text = Mathf.RoundToInt(value * 100f) + "%";
+            fill.anchorMax = new Vector2(value, 1f);
         }
     }
 }

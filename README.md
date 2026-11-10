@@ -12,7 +12,7 @@ Detalhes de design e arquitetura em [visao_tecnica.md](visao_tecnica.md).
 3. O host clica em **START MATCH**.
 4. Digite o texto. Backspace apaga, setas ← → movem o cursor (uma posição por toque). **Ctrl + nome do poder** usa o primeiro poder da fila. AUTOCOMPLETE só é recebido por quem está atrás e completa até 10 palavras de quem usou.
 
-Pressione **Esc** para sair da partida, treino ou lobby e voltar ao menu principal. Também cancela uma conexão em andamento.
+Pressione **Esc** para abrir a confirmação de saída da partida, treino ou lobby. Escolha **Abandonar** para voltar ao menu ou **Continuar** (ou Esc novamente) para fechar a janela. A partida continua enquanto o modal está aberto. No resultado, Esc volta direto ao menu; durante uma conexão, cancela a tentativa.
 
 Os dois computadores precisam estar na mesma rede (Wi-Fi/cabo) e a porta TCP **7777** liberada no firewall. Redes de campus podem isolar os dispositivos; se não conectar, use o hotspot do celular.
 

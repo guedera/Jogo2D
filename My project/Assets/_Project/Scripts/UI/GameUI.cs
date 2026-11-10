@@ -26,8 +26,9 @@ namespace TypeDuel.UI
         const float SidePanelRight = 60f;
         const float SidePanelGap = 20f;
         const float PanelPad = 20f;
-        const float MatchPanelH = 150f;
-        const float PlayerRowH = 44f;
+        const float TrainingPanelH = 150f;
+        const float PlayerRowH = 56f;
+        const float ProgressWidth = 1230f;
         const float SlotSize = 92f;
         const float SlotLabelH = 26f;
         const float SlotGap = 12f;
@@ -75,7 +76,7 @@ namespace TypeDuel.UI
 
         // Partida
         GameObject gamePanel;
-        RectTransform matchPanel;
+        RectTransform trainingPanel;
         RectTransform playersPanel;
         RectTransform effectsPanel;
         RectTransform rowsRoot;
@@ -85,7 +86,7 @@ namespace TypeDuel.UI
         public TypingView Typing { get; private set; }
         public PowerPromptView Prompt { get; private set; }
         TMP_Text glitchBanner;
-        TMP_Text matchTimer;
+        TMP_Text trainingTimer;
         TMP_Text toast;
         TMP_Text countdown;
         Image flash;
@@ -107,6 +108,14 @@ namespace TypeDuel.UI
 
         /// <summary>Icone de cada efeito (opcional). Enquanto devolver null, o slot mostra so o quadrado colorido de placeholder.</summary>
         public Func<PowerType, Sprite> PowerIconProvider { get; set; }
+
+        // Confirmacao de abandono, desenhada acima de todas as telas.
+        GameObject leaveConfirmation;
+        TMP_Text leaveTitle;
+        TMP_Text leaveMessage;
+        public Button ContinueButton { get; private set; }
+        public Button ConfirmLeaveButton { get; private set; }
+        public bool LeaveConfirmationVisible => leaveConfirmation != null && leaveConfirmation.activeSelf;
 
         // Resultado
         GameObject resultPanel;
@@ -139,6 +148,7 @@ namespace TypeDuel.UI
             BuildLobby(root, onStart, onLeave);
             BuildGame(root);
             BuildResult(root, onPlayAgain, onLeave, onTrainAgain);
+            BuildLeaveConfirmation(root, onLeave);
             ShowMenu();
         }
 
@@ -439,17 +449,17 @@ namespace TypeDuel.UI
 
             float inner = SidePanelW - PanelPad * 2f;
 
-            // Partida (tempo)
-            matchPanel = UiKit.Frame(panel, "MatchPanel").rectTransform;
-            var matchTitle = UiKit.Label(matchPanel, "Title", "Partida", 32f, UiKit.TextMain, TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
+            // Cronometro funcional apenas no treino
+            trainingPanel = UiKit.Frame(panel, "TrainingPanel").rectTransform;
+            var matchTitle = UiKit.Label(trainingPanel, "Title", "Treino", 32f, UiKit.TextMain, TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
             UiKit.PlaceTop(matchTitle.rectTransform, 0f, 16f, inner, 44f);
-            matchTimer = UiKit.Label(matchPanel, "Timer", "000s", 64f, UiKit.TextMain, TextAlignmentOptions.MidlineLeft);
-            UiKit.PlaceTop(matchTimer.rectTransform, 0f, 62f, inner, 80f);
+            trainingTimer = UiKit.Label(trainingPanel, "Timer", "000s", 64f, UiKit.TextMain, TextAlignmentOptions.MidlineLeft);
+            UiKit.PlaceTop(trainingTimer.rectTransform, 0f, 62f, inner, 80f);
 
-            // Jogadores (cor, nome e progresso em %)
-            playersPanel = UiKit.Frame(panel, "PlayersPanel").rectTransform;
-            var playersTitle = UiKit.Label(playersPanel, "Title", "Jogadores", 32f, UiKit.TextMain, TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
-            UiKit.PlaceTop(playersTitle.rectTransform, 0f, 16f, inner, 40f);
+            trainingPanel.gameObject.SetActive(false);
+
+            // Barras de progresso no topo, alinhadas a area do texto.
+            playersPanel = UiKit.NewRect("ProgressBars", panel);
             rowsRoot = UiKit.NewRect("Rows", playersPanel);
 
             // Efeitos (fila de poderes)
@@ -518,10 +528,10 @@ namespace TypeDuel.UI
 
             // Posicoes abaixo sao relativas ao centro da area do texto (x = -175).
             glitchBanner = UiKit.Label(panel, "GlitchBanner", "", 40f, PowerInfo.Color(PowerType.Glitch), style: FontStyles.Bold);
-            UiKit.Place(glitchBanner.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(-175f, 470f), new Vector2(1230f, 60f));
+            UiKit.Place(glitchBanner.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(-175f, 330f), new Vector2(1230f, 60f));
 
             toast = UiKit.Label(panel, "Toast", "", 46f, UiKit.TextMain, style: FontStyles.Bold);
-            UiKit.Place(toast.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(-175f, 415f), new Vector2(1230f, 70f));
+            UiKit.Place(toast.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(-175f, 260f), new Vector2(1230f, 70f));
 
             countdown = UiKit.Label(panel, "Countdown", "", 260f, UiKit.TextMain, style: FontStyles.Bold);
             UiKit.Place(countdown.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(-175f, 0f), new Vector2(1230f, 320f));
@@ -546,17 +556,15 @@ namespace TypeDuel.UI
             Prompt = new PowerPromptView(panel);
         }
 
-        /// <summary>Empilha os paineis da direita (Partida, Jogadores, Efeitos); cada um comeca onde o de cima termina.</summary>
+        /// <summary>Posiciona o progresso no topo e os efeitos/cronometro de treino na lateral.</summary>
         void LayoutSidePanels()
         {
             float x = 960f - SidePanelRight - SidePanelW * 0.5f;
             float y = SidePanelTop;
 
-            UiKit.PlaceTop(matchPanel, x, y, SidePanelW, MatchPanelH);
-            y += MatchPanelH + SidePanelGap;
-
-            UiKit.PlaceTop(playersPanel, x, y, SidePanelW, playersPanelH);
-            y += playersPanelH + SidePanelGap;
+            UiKit.PlaceTop(playersPanel, -175f, 50f, ProgressWidth, playersPanelH);
+            UiKit.PlaceTop(trainingPanel, x, y, SidePanelW, TrainingPanelH);
+            if (trainingPanel.gameObject.activeSelf) y += TrainingPanelH + SidePanelGap;
 
             UiKit.PlaceTop(effectsPanel, x, y, SidePanelW, EffectsHeaderH + GridHeight() + 16f);
         }
@@ -574,7 +582,7 @@ namespace TypeDuel.UI
             foreach (Transform child in rowsRoot) UnityEngine.Object.Destroy(child.gameObject);
             opponentRows.Clear();
 
-            float rowW = SidePanelW - PanelPad * 2f;
+            float rowW = ProgressWidth;
             int index = 0;
 
             ownRow = new PlayerRow(rowsRoot, "OwnRow", string.IsNullOrEmpty(ownName) ? "Você" : ownName, UiKit.PlayerColor(index), rowW, PlayerRowH);
@@ -596,8 +604,8 @@ namespace TypeDuel.UI
                 index++;
             }
 
-            UiKit.PlaceTop(rowsRoot, 0f, 58f, rowW, index * PlayerRowH);
-            playersPanelH = 58f + index * PlayerRowH + 14f;
+            UiKit.PlaceTop(rowsRoot, 0f, 0f, rowW, index * PlayerRowH);
+            playersPanelH = index * PlayerRowH;
             LayoutSidePanels();
 
             ownRow.Set(0f);
@@ -655,16 +663,16 @@ namespace TypeDuel.UI
             effectsPanel.gameObject.SetActive(visible);
         }
 
-        /// <summary>Segundos restantes do treino, no painel Partida; negativo zera o relogio.</summary>
+        /// <summary>Exibe o cronometro somente no treino; negativo oculta o painel no versus.</summary>
         public void SetTrainingTimer(float seconds)
         {
-            matchTimer.text = seconds < 0f ? "000s" : Mathf.CeilToInt(seconds).ToString("000") + "s";
-        }
-
-        /// <summary>Tempo de partida (ex.: segundos desde o inicio) no painel Partida.</summary>
-        public void SetMatchTime(float seconds)
-        {
-            matchTimer.text = Mathf.Max(0, Mathf.FloorToInt(seconds)).ToString("000") + "s";
+            bool visible = seconds >= 0f;
+            if (trainingPanel.gameObject.activeSelf != visible)
+            {
+                trainingPanel.gameObject.SetActive(visible);
+                LayoutSidePanels();
+            }
+            if (visible) trainingTimer.text = Mathf.CeilToInt(seconds).ToString("000") + "s";
         }
 
         public void SetGlitch(float secondsLeft)
@@ -748,10 +756,65 @@ namespace TypeDuel.UI
             UiKit.Place(ResultMenuButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0f, -230f), new Vector2(360f, 80f));
         }
 
+        void BuildLeaveConfirmation(RectTransform parent, Action onLeave)
+        {
+            var dim = UiKit.Box(parent, "LeaveConfirmation", new Color(0.04f, 0.05f, 0.08f, 0.88f), raycast: true);
+            UiKit.Stretch(dim.rectTransform);
+            leaveConfirmation = dim.gameObject;
+
+            var box = UiKit.Frame(dim.transform, "Dialog", raycast: true);
+            UiKit.Place(box.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1000f, 400f));
+            leaveTitle = UiKit.Label(box.transform, "Title", "", 48f, UiKit.TextMain, style: FontStyles.Bold);
+            UiKit.PlaceTop(leaveTitle.rectTransform, 0f, 40f, 920f, 65f);
+            leaveMessage = UiKit.Label(box.transform, "Message", "", 28f, UiKit.TextDim);
+            leaveMessage.textWrappingMode = TextWrappingModes.Normal;
+            UiKit.PlaceTop(leaveMessage.rectTransform, 0f, 118f, 880f, 100f);
+
+            ContinueButton = UiKit.MakeButton(box.transform, "Continue", "CONTINUAR JOGANDO", UiKit.Blue,
+                HideLeaveConfirmation, new Vector2(420f, 80f), 28f);
+            UiKit.PlaceTop(ContinueButton.GetComponent<RectTransform>(), -230f, 260f, 420f, 80f);
+            ConfirmLeaveButton = UiKit.MakeButton(box.transform, "ConfirmLeave", "ABANDONAR PARTIDA", UiKit.Red,
+                () => { HideLeaveConfirmation(); onLeave(); }, new Vector2(420f, 80f), 28f);
+            UiKit.PlaceTop(ConfirmLeaveButton.GetComponent<RectTransform>(), 230f, 260f, 420f, 80f);
+
+            // Mantem a navegacao por teclado dentro do modal.
+            ContinueButton.navigation = new Navigation { mode = Navigation.Mode.Explicit,
+                selectOnLeft = ConfirmLeaveButton, selectOnRight = ConfirmLeaveButton };
+            ConfirmLeaveButton.navigation = new Navigation { mode = Navigation.Mode.Explicit,
+                selectOnLeft = ContinueButton, selectOnRight = ContinueButton };
+            var hint = UiKit.Label(box.transform, "Hint", "Esc para continuar", 22f, UiKit.TextDim);
+            UiKit.PlaceTop(hint.rectTransform, 0f, 354f, 880f, 30f);
+            leaveConfirmation.SetActive(false);
+        }
+
+        public void ShowLeaveConfirmation(bool lobby, bool training, bool host)
+        {
+            leaveTitle.text = lobby ? "SAIR DO LOBBY?" : training ? "ABANDONAR O TREINO?" : "ABANDONAR A PARTIDA?";
+            leaveMessage.text = lobby
+                ? (host ? "Ao sair, a sala será encerrada para todos." : "Você voltará ao menu principal.")
+                : (host ? "Ao abandonar, a partida será encerrada para todos.\n" : "Seu progresso nesta partida será perdido.\n")
+                    + "A partida continua enquanto esta janela estiver aberta.";
+            ContinueButton.GetComponentInChildren<TMP_Text>().text = lobby ? "CONTINUAR NO LOBBY" : "CONTINUAR JOGANDO";
+            ConfirmLeaveButton.GetComponentInChildren<TMP_Text>().text = lobby ? "SAIR DO LOBBY" : training ? "ABANDONAR TREINO" : "ABANDONAR PARTIDA";
+            leaveConfirmation.SetActive(true);
+            leaveConfirmation.transform.SetAsLastSibling();
+            if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(ContinueButton.gameObject);
+        }
+
+        public void HideLeaveConfirmation()
+        {
+            if (!LeaveConfirmationVisible) return;
+            if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null
+                && EventSystem.current.currentSelectedGameObject.transform.IsChildOf(leaveConfirmation.transform))
+                EventSystem.current.SetSelectedGameObject(null);
+            leaveConfirmation.SetActive(false);
+        }
+
         // ------------------------------------------------------------ navegacao
 
         void Only(GameObject active)
         {
+            HideLeaveConfirmation();
             menuPanel.SetActive(active == menuPanel);
             lobbyPanel.SetActive(active == lobbyPanel);
             gamePanel.SetActive(active == gamePanel);
@@ -764,6 +827,7 @@ namespace TypeDuel.UI
 
         public void ShowResult(bool won, string subtitle, bool isHost)
         {
+            HideLeaveConfirmation();
             resultPanel.SetActive(true);
             resultTitle.text = won ? "VOCÊ VENCEU!" : "VOCÊ PERDEU";
             resultTitle.color = won ? UiKit.Green : UiKit.Red;
@@ -775,6 +839,7 @@ namespace TypeDuel.UI
 
         public void ShowTrainingResult(float wpm, float accuracy)
         {
+            HideLeaveConfirmation();
             resultPanel.SetActive(true);
             resultTitle.text = "TEMPO!";
             resultTitle.color = UiKit.Blue;

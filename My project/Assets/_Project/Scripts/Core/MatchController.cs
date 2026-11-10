@@ -116,8 +116,7 @@ namespace TypeDuel
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame
                 && (State != MatchState.Menu || net != null))
             {
-                LeaveToMenu(null);
-                return;
+                HandleEscape();
             }
 
             net?.Tick();
@@ -130,6 +129,24 @@ namespace TypeDuel
                 case MatchState.Countdown: UpdateCountdown(); break;
                 case MatchState.Playing: UpdatePlaying(); break;
             }
+        }
+
+        void HandleEscape()
+        {
+            if (ui.LeaveConfirmationVisible)
+            {
+                ui.HideLeaveConfirmation();
+                return;
+            }
+            // No menu (conectando) e no resultado nao ha partida em andamento a abandonar.
+            if (State == MatchState.Menu || State == MatchState.Over)
+            {
+                LeaveToMenu(null);
+                return;
+            }
+            typingAudio.Stop();
+            SetPeeking(false);
+            ui.ShowLeaveConfirmation(State == MatchState.Lobby, training || soloLobby, IsHost);
         }
 
         void AttachKeyboard()
@@ -639,6 +656,8 @@ namespace TypeDuel
                 Refresh();
             }
 
+            if (ui.LeaveConfirmationVisible) return;
+
             var kb = Keyboard.current;
             if (kb != null)
             {
@@ -684,6 +703,7 @@ namespace TypeDuel
 
         void OnTextInput(char c)
         {
+            if (ui.LeaveConfirmationVisible) return;
             if (State == MatchState.Menu)
             {
                 if (editingName)
@@ -724,6 +744,7 @@ namespace TypeDuel
         /// <summary>Insere uma letra no cursor (tambem usado pelo bot de testes).</summary>
         public void Type(char c)
         {
+            if (ui.LeaveConfirmationVisible) return;
             if (State != MatchState.Playing || model == null) return;
             if (model.Insert(c))
             {
@@ -742,18 +763,21 @@ namespace TypeDuel
 
         public void DoBackspace()
         {
+            if (ui.LeaveConfirmationVisible) return;
             if (State != MatchState.Playing || model == null) return;
             if (model.Backspace()) AfterEdit();
         }
 
         public void DoDelete()
         {
+            if (ui.LeaveConfirmationVisible) return;
             if (State != MatchState.Playing || model == null) return;
             if (model.Delete()) AfterEdit();
         }
 
         public void MoveCursorRight()
         {
+            if (ui.LeaveConfirmationVisible) return;
             if (State == MatchState.Playing && model != null) DoMove(1);
         }
 
@@ -821,6 +845,7 @@ namespace TypeDuel
 
         public void UsePower(PowerType power)
         {
+            if (ui.LeaveConfirmationVisible) return;
             if (State != MatchState.Playing || queue.Count == 0 || queue[0] != power) return;
             queue.RemoveAt(0);
 

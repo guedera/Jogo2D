@@ -234,11 +234,13 @@ namespace TypeDuel.Net
             var inventory = inventories[sender];
             if (inventory.Count >= Config.MaxHeldPowers) return;
 
-            // Empates nao habilitam AUTOCOMPLETE. A elegibilidade e decidida ao receber.
-            bool behind = false;
+            // Lider: BOBOMB/GLITCH. Empate: tambem CHANGE. Atras: inclui AUTOCOMPLETE.
+            int bestOther = 0;
             foreach (var pair in progress)
-                if (pair.Key != sender && pair.Value > progress[sender]) behind = true;
-            var power = (byte)rng.Next(behind ? PowerInfo.Count : PowerInfo.Count - 1);
+                if (pair.Key != sender) bestOther = Math.Max(bestOther, pair.Value);
+            int eligible = progress[sender] < bestOther ? PowerInfo.Count
+                : progress[sender] > bestOther ? (int)PowerType.Change : (int)PowerType.Autocomplete;
+            var power = (byte)rng.Next(eligible);
             inventory.Enqueue(power);
             net.SendToClient(sender, MsgType.PowerGranted, w => w.Write(power));
         }

@@ -20,7 +20,7 @@ Jogo **versus de 2 jogadores** em rede local. Quando a partida começa, os dois 
 | **BOBOMB** | Uma bomba cai na palavra que o adversário está digitando e **apaga as últimas 10 letras** que ele digitou. |
 | **GLITCH** | O adversário vê o próprio texto em **leet** por **15 s**. |
 | **AUTOCOMPLETE** | Completa corretamente as próximas **10 palavras** de quem usou, a partir do primeiro trecho incorreto/incompleto. Só pode ser recebido por quem estiver atrás de outro jogador. |
-| **CHANGE** | O cursor `\|` do adversário volta **20 letras** a partir da posição atual (até o início do texto). Ele precisa avançar com as **setas**. |
+| **CHANGE** | O cursor `\|` do adversário volta **20 letras** a partir da posição atual (até o início do texto). Ele precisa avançar com as **setas**. Quem está na frente não recebe CHANGE; empate permite. |
 
 ---
 
@@ -108,8 +108,8 @@ texto exibido = typed  (cada letra branca ou vermelha, mostrando a letra digitad
 - `PowerDefinition` (ScriptableObject): `id`, nome, ícone, e a lógica de aplicação.
 - **Adicionar um poder** = criar um novo ScriptableObject + uma classe de efeito, sem mexer no `GameManager`.
 - Fila por jogador (FIFO), limitada a **3** no host e no cliente. A UI mostra três espaços.
-- **Sorteio no host:** as palavras de recompensa são escolhidas antes da partida e sincronizadas na mensagem `Start`. Ao concluir uma delas, o host verifica progresso, contagem única e espaço no inventário. Sorteia uniformemente BOBOMB, GLITCH ou CHANGE; inclui AUTOCOMPLETE se o prefixo correto do jogador for menor que o de outro jogador naquele momento. Empate não habilita AUTOCOMPLETE. Não há mais sorteio de chance por palavra, proteção contra azar ou chance crescente por atraso.
-- **Uso:** Ctrl + nome → `UsePower` → host valida e remove o primeiro poder da fila. AUTOCOMPLETE é enviado ao próprio usuário; os outros atingem os demais jogadores. Um AUTOCOMPLETE já recebido pode ser usado mesmo depois de assumir a liderança.
+- **Sorteio no host:** as palavras de recompensa são escolhidas antes da partida e sincronizadas na mensagem `Start`. Ao concluir uma delas, o host verifica progresso, contagem única e espaço no inventário. Sorteia uniformemente entre os poderes elegíveis: **líder isolado recebe somente BOBOMB ou GLITCH**; em empate, CHANGE também é permitido; quem está atrás pode receber os quatro, incluindo AUTOCOMPLETE. A comparação usa o prefixo correto no momento da recompensa. Empate não habilita AUTOCOMPLETE. Não há mais sorteio de chance por palavra, proteção contra azar ou chance crescente por atraso.
+- **Uso:** Ctrl + nome → `UsePower` → host valida e remove o primeiro poder da fila. AUTOCOMPLETE é enviado ao próprio usuário; os outros atingem os demais jogadores. CHANGE e AUTOCOMPLETE já recebidos podem ser usados mesmo depois de assumir a liderança.
 
 **Efeitos (executados no cliente alvo, que é dono do `TypingModel`):**
 
@@ -149,9 +149,9 @@ texto exibido = typed  (cada letra branca ou vermelha, mostrando a letra digitad
 - Menu: Host, Join (+ campo de IP), Sair.
 - Tela de espera: mostra o IP do host e quantos jogadores conectaram.
 - Contagem 3-2-1.
-- Partida: texto central, **barra de progresso do adversário**, fila de poderes.
+- Partida: texto central, **barras de progresso dos jogadores no topo esquerdo**, com nomes e cores; preenchimento baseado no prefixo correto, sem porcentagens laterais. A barra pode recuar após erro ou BOBOMB. Fila de poderes na lateral direita. O versus não exibe relógio; somente o treino mantém seu cronômetro regressivo de 60 s.
 - Resultado: vitória/derrota e botão voltar ao menu.
-- **Esc:** volta ao menu a partir do lobby, contagem, partida, treino ou resultado; também cancela uma conexão em andamento. Usa `LeaveToMenu`, encerrando a conexão, animações e seleção de poder. No menu sem conexão, não faz nada.
+- **Esc:** abre um modal de confirmação no tema escuro durante lobby, contagem, partida e treino. **Continuar** ou Esc novamente fecha a janela; **Abandonar** executa `LeaveToMenu`, encerrando conexão, música e efeitos. O modal bloqueia digitação, poderes e cliques no fundo, com foco inicial em Continuar; rede, relógios e efeitos recebidos seguem funcionando. Se a partida terminar ou a conexão cair, a janela fecha automaticamente. No resultado, Esc volta direto ao menu; durante conexão, cancela a tentativa. No menu sem conexão, não faz nada.
 
 ### Feedback visual e som de digitação
 
