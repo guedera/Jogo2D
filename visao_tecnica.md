@@ -153,6 +153,14 @@ texto exibido = typed  (cada letra branca ou vermelha, mostrando a letra digitad
 - Resultado: vitória/derrota e botão voltar ao menu.
 - **Esc:** volta ao menu a partir do lobby, contagem, partida, treino ou resultado; também cancela uma conexão em andamento. Usa `LeaveToMenu`, encerrando a conexão, animações e seleção de poder. No menu sem conexão, não faz nada.
 
+### Feedback visual e som de digitação
+
+- Cada poder tem uma animação de **0,7 s** com bordas e partículas de baixa opacidade: BOBOMB laranja e radial, GLITCH com traços roxos, CHANGE com traços azuis para a esquerda e AUTOCOMPLETE com partículas verdes para a direita.
+- Quem usa um poder ofensivo vê a animação imediatamente; quem recebe vê ao aplicar o efeito (BOBOMB na explosão). AUTOCOMPLETE anima somente quem usou, ao receber a confirmação do host.
+- As imagens não interceptam cliques. Os elementos visuais são reutilizados; um novo efeito substitui a animação anterior. Sair com Esc ou encerrar a partida limpa os efeitos.
+- Cada letra aceita durante partida/treino e ao escrever o nome de um poder toca um clique suave de **30 ms**, com três variações. Volume em `Config.TypingVolume` (0,045). Espaços, navegação e preenchimento automático não geram som.
+- O áudio é gerado uma vez em memória por `TypingAudio`, sem download ou arquivo externo.
+
 ### 4.5 Assets (todos placeholder no protótipo)
 
 - 4 ícones de poder, sprite de bomba, explosão (partículas).

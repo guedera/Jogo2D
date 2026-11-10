@@ -25,6 +25,7 @@ namespace TypeDuel
         readonly List<string> opponentNames = new List<string>();
 
         GameUI ui;
+        TypingAudio typingAudio;
         GameNet net;
         HostLogic host;
         TypingModel model;
@@ -76,6 +77,7 @@ namespace TypeDuel
             try { ip = PlayerPrefs.GetString(IpPrefKey, ip); } catch { /* ignorado */ }
             try { playerName = PlayerPrefs.GetString(NamePrefKey, ""); } catch { /* ignorado */ }
 
+            typingAudio = gameObject.AddComponent<TypingAudio>();
             ui = new GameUI();
             ui.Build(StartHosting, () => StartJoining(ip), StartFromLobby, () => LeaveToMenu(null), () => host?.ReturnToLobby(), OpenTrainingLobby, ReturnToTrainingLobby);
             ui.SetIpText(ip, true);
@@ -407,6 +409,7 @@ namespace TypeDuel
         public void LeaveToMenu(string message)
         {
             StopAllCoroutines();
+            typingAudio.Stop();
             StopCasting();
             peeking = false;
             net?.Dispose();
@@ -687,7 +690,11 @@ namespace TypeDuel
             if (casting)
             {
                 if (c == ' ') StopCasting();
-                else if (char.IsLetter(c)) AddCastChar(c);
+                else if (char.IsLetter(c))
+                {
+                    typingAudio.PlayLetter(c);
+                    AddCastChar(c);
+                }
                 return;
             }
 
@@ -706,7 +713,11 @@ namespace TypeDuel
         public void Type(char c)
         {
             if (State != MatchState.Playing || model == null) return;
-            if (model.Insert(c)) AfterEdit();
+            if (model.Insert(c))
+            {
+                typingAudio.PlayLetter(c);
+                AfterEdit();
+            }
         }
 
         /// <summary>Segurar TAB mostra o texto original no lugar do que foi digitado.</summary>
@@ -803,6 +814,7 @@ namespace TypeDuel
 
             ui.SetSlots(queue);
             net.SendToServer(MsgType.UsePower, w => w.Write((byte)power));
+            if (power != PowerType.Autocomplete) ui.PlayPowerFeedback(power);
             ui.ShowToast("Used " + PowerInfo.Name(power) + "!", PowerInfo.Color(power));
             Debug.Log($"[TD] Used power {power}");
         }
@@ -891,6 +903,7 @@ namespace TypeDuel
             {
                 case PowerType.Autocomplete:
                 {
+                    ui.PlayPowerFeedback(power);
                     model.Autocomplete(Config.AutocompleteWords);
                     AfterEdit();
                     ui.ShowToast("AUTOCOMPLETE!", PowerInfo.Color(power));
@@ -908,7 +921,7 @@ namespace TypeDuel
                 {
                     glitchUntil = Time.time + Config.GlitchSeconds;
                     ui.ShowToast("GLITCH! Your text is scrambled", PowerInfo.Color(PowerType.Glitch));
-                    ui.FlashScreen(0.25f);
+                    ui.PlayPowerFeedback(power);
                     Refresh();
                     break;
                 }
@@ -917,7 +930,7 @@ namespace TypeDuel
                     model.SetCursor(Mathf.Max(0, model.Cursor - Config.ChangeRewindChars));
                     lastInputTime = Time.time;
                     ui.ShowToast("CHANGE! Cursor moved - use the arrow keys", PowerInfo.Color(PowerType.Change));
-                    ui.FlashScreen(0.2f);
+                    ui.PlayPowerFeedback(power);
                     Refresh();
                     break;
                 }
@@ -948,7 +961,8 @@ namespace TypeDuel
                 AfterEdit();
             }
 
-            ui.FlashScreen(0.45f);
+            ui.PlayPowerFeedback(PowerType.Bobomb);
+            ui.FlashScreen(0.12f);
             StartCoroutine(ExplosionRoutine(target));
             yield return ShakeRoutine();
         }

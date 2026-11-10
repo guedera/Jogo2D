@@ -89,6 +89,7 @@ namespace TypeDuel.UI
         TMP_Text toast;
         TMP_Text countdown;
         Image flash;
+        PowerFeedback powerFeedback;
         public Image BombImage { get; private set; }
         public Image ExplosionImage { get; private set; }
         RectTransform slotsRoot;
@@ -541,6 +542,7 @@ namespace TypeDuel.UI
             ExplosionImage.rectTransform.sizeDelta = new Vector2(120f, 120f);
             ExplosionImage.gameObject.SetActive(false);
 
+            powerFeedback = new PowerFeedback(panel);
             Prompt = new PowerPromptView(panel);
         }
 
@@ -677,11 +679,14 @@ namespace TypeDuel.UI
             toastTimer = 1.8f;
         }
 
+        public void PlayPowerFeedback(PowerType power) => powerFeedback.Play(power);
+
         public void FlashScreen(float strength = 0.4f) => flashAlpha = strength;
 
         public void Tick(float dt)
         {
             Typing?.Tick(dt);
+            powerFeedback?.Tick(dt);
 
             if (toastTimer > 0f)
             {
@@ -703,6 +708,7 @@ namespace TypeDuel.UI
 
         public void ResetEffects()
         {
+            powerFeedback.Reset();
             BombImage.gameObject.SetActive(false);
             ExplosionImage.gameObject.SetActive(false);
             TextPanel.anchoredPosition = new Vector2(0f, -10f);
