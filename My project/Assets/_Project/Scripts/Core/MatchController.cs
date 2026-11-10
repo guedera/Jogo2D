@@ -26,6 +26,7 @@ namespace TypeDuel
 
         GameUI ui;
         TypingAudio typingAudio;
+        AudioSource battleMusic;
         GameNet net;
         HostLogic host;
         TypingModel model;
@@ -78,6 +79,12 @@ namespace TypeDuel
             try { playerName = PlayerPrefs.GetString(NamePrefKey, ""); } catch { /* ignorado */ }
 
             typingAudio = gameObject.AddComponent<TypingAudio>();
+            battleMusic = gameObject.AddComponent<AudioSource>();
+            battleMusic.playOnAwake = false;
+            battleMusic.loop = true;
+            battleMusic.spatialBlend = 0f;
+            battleMusic.volume = Config.BattleMusicVolume;
+            battleMusic.clip = Resources.Load<AudioClip>("Audio/BattleTheme");
             ui = new GameUI();
             ui.Build(StartHosting, () => StartJoining(ip), StartFromLobby, () => LeaveToMenu(null), () => host?.ReturnToLobby(), OpenTrainingLobby, ReturnToTrainingLobby);
             ui.SetIpText(ip, true);
@@ -97,6 +104,7 @@ namespace TypeDuel
         void OnDestroy()
         {
             if (subscribedKeyboard != null) subscribedKeyboard.onTextInput -= OnTextInput;
+            if (battleMusic != null) battleMusic.Stop();
             net?.Dispose();
         }
 
@@ -409,6 +417,7 @@ namespace TypeDuel
         public void LeaveToMenu(string message)
         {
             StopAllCoroutines();
+            battleMusic.Stop();
             typingAudio.Stop();
             StopCasting();
             peeking = false;
@@ -522,6 +531,7 @@ namespace TypeDuel
         void BeginMatch(string text, List<int> ids, List<string> names, bool trainingMode)
         {
             StopAllCoroutines();
+            battleMusic.Stop();
             ui.ResetEffects();
             ui.HideResult();
 
@@ -593,6 +603,7 @@ namespace TypeDuel
             }
 
             State = MatchState.Playing;
+            if (!training && battleMusic.clip != null) battleMusic.Play();
             goBannerUntil = Time.time + 0.7f;
             ui.SetCountdown("GO!");
             lastInputTime = Time.time;
@@ -657,6 +668,7 @@ namespace TypeDuel
         void EndMatch(int winnerId, byte reason)
         {
             StopAllCoroutines();
+            battleMusic.Stop();
             ui.ResetEffects();
             State = MatchState.Over;
             StopCasting();

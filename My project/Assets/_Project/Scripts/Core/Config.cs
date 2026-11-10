@@ -17,7 +17,8 @@ namespace TypeDuel
         public const float PowerWordFraction = 0.15f;
         public const int MaxHeldPowers = 3;
         public const int AutocompleteWords = 10;
-        public const float TypingVolume = 0.045f;
+        public const float TypingVolume = 0.06f;
+        public const float BattleMusicVolume = 0.035f;
         public const float GlitchSeconds = 15f;
         public const int BombEraseChars = 10;
         public const int ChangeRewindChars = 20;

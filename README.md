@@ -28,3 +28,7 @@ Os dois computadores precisam estar na mesma rede (Wi-Fi/cabo) e a porta TCP **7
 - Guilherme Galvao Guedes
 - Silas André Pereira de Brito
 - Thomas Martins Kassabian
+
+## Música
+
+- Batalha: **Those Who Fight — Final Fantasy VII OST**, MP3 fornecido pelo usuário e incluído em `My project/Assets/Resources/Audio/BattleTheme.mp3`.

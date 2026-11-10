@@ -158,8 +158,10 @@ texto exibido = typed  (cada letra branca ou vermelha, mostrando a letra digitad
 - Cada poder tem uma animação de **0,7 s** com bordas e partículas de baixa opacidade: BOBOMB laranja e radial, GLITCH com traços roxos, CHANGE com traços azuis para a esquerda e AUTOCOMPLETE com partículas verdes para a direita.
 - Quem usa um poder ofensivo vê a animação imediatamente; quem recebe vê ao aplicar o efeito (BOBOMB na explosão). AUTOCOMPLETE anima somente quem usou, ao receber a confirmação do host.
 - As imagens não interceptam cliques. Os elementos visuais são reutilizados; um novo efeito substitui a animação anterior. Sair com Esc ou encerrar a partida limpa os efeitos.
-- Cada letra aceita durante partida/treino e ao escrever o nome de um poder toca um clique suave de **30 ms**, com três variações. Volume em `Config.TypingVolume` (0,045). Espaços, navegação e preenchimento automático não geram som.
+- Cada letra aceita durante partida/treino e ao escrever o nome de um poder toca um clique suave de **30 ms**, com três variações. Volume em `Config.TypingVolume` (0,06). Espaços, navegação e preenchimento automático não geram som.
 - O áudio é gerado uma vez em memória por `TypingAudio`, sem download ou arquivo externo.
+
+- Música de batalha: `Resources/Audio/BattleTheme.mp3` (faixa fornecida pelo usuário). Toca em loop, com volume baixo (`Config.BattleMusicVolume = 0,035`), a partir do GO no versus. Para no resultado, saída/desconexão ou reinício da partida. Menu, lobby, contagem e treino ficam sem música. Usa um `AudioSource` separado do som de digitação.
 
 ### 4.5 Assets (todos placeholder no protótipo)
 
