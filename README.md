@@ -3,6 +3,8 @@ Jogos Digitais Insper 2026.2
 
 Jogo versus de digitação em LAN: dois jogadores recebem o mesmo texto de 100 palavras e vence quem digitar tudo certo primeiro. Ao completar palavras roxas o jogador ganha até 3 poderes (BOBOMB, GLITCH, CHANGE, AUTOCOMPLETE) para atrapalhar o adversário.
 
+**Jogue no itch.io:** https://thomaskmk.itch.io/type-duel (o treino roda no navegador; para o duelo em LAN, baixe a versão para Windows ou macOS na mesma página).
+
 Detalhes de design e arquitetura em [visao_tecnica.md](visao_tecnica.md).
 
 ## Como jogar (MVP)
