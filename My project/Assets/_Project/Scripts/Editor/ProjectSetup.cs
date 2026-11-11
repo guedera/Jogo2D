@@ -51,9 +51,14 @@ namespace TypeDuel.EditorTools
             // D3D12 (padrao do Unity 6) falha em GPUs/drivers antigos e VMs; para um jogo 2D, D3D11 roda em tudo.
             PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
             PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows64, new[] { UnityEngine.Rendering.GraphicsDeviceType.Direct3D11 });
+
+            // O itch.io nao envia os cabecalhos de compressao que o Unity espera: sem compressao, o build Web abre em qualquer servidor.
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
+            PlayerSettings.defaultWebScreenWidth = 1280;
+            PlayerSettings.defaultWebScreenHeight = 720;
         }
 
-        static void Build(BuildTarget target, string relativeOutput)
+        static bool Build(BuildTarget target, string relativeOutput)
         {
             ApplyPlayerSettings();
 
@@ -69,8 +74,11 @@ namespace TypeDuel.EditorTools
             var report = BuildPipeline.BuildPlayer(options);
             Debug.Log($"[TypeDuel] Build {target}: {report.summary.result} -> {options.locationPathName}");
 
-            if (report.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
-                EditorApplication.Exit(1);
+            bool ok = report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded;
+            // So encerra o Unity em linha de comando; com o editor aberto, apenas registra o erro.
+            if (!ok && Application.isBatchMode) EditorApplication.Exit(1);
+            if (!ok) Debug.LogError($"[TypeDuel] Build {target} falhou. Veja os erros acima no Console.");
+            return ok;
         }
 
         [MenuItem("Tools/TypeDuel/Build macOS")]
@@ -78,5 +86,18 @@ namespace TypeDuel.EditorTools
 
         [MenuItem("Tools/TypeDuel/Build Windows")]
         public static void BuildWindows() => Build(BuildTarget.StandaloneWindows64, "Windows/TypeDuel.exe");
+
+        [MenuItem("Tools/TypeDuel/Build Web (itch.io)")]
+        public static void BuildWeb() => Build(BuildTarget.WebGL, "WebGL");
+
+        /// <summary>Gera macOS, Windows e Web em sequencia (Web por ultimo, porque troca a plataforma e reimporta os assets).</summary>
+        [MenuItem("Tools/TypeDuel/Build All (macOS, Windows, Web)")]
+        public static void BuildAll()
+        {
+            bool mac = Build(BuildTarget.StandaloneOSX, "macOS/TypeDuel.app");
+            bool win = Build(BuildTarget.StandaloneWindows64, "Windows/TypeDuel.exe");
+            bool web = Build(BuildTarget.WebGL, "WebGL");
+            Debug.Log($"[TypeDuel] Build All: macOS={(mac ? "ok" : "FALHOU")}  Windows={(win ? "ok" : "FALHOU")}  Web={(web ? "ok" : "FALHOU")}");
+        }
     }
 }
